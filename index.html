@@ -77,22 +77,27 @@
                 }
             };
 
-            // --- FUNCTION 3: GET TODAY'S LOGS (FOR SYNC) ---
-            window.getTodayLogs = async () => {
+            // --- FUNCTION 3: GET WEEKLY LOGS (FOR SYNC) ---
+            window.getWeeklyLogs = async () => {
                 try {
-                    // Get today's date in YYYY-MM-DD format
-                    const today = new Date().toISOString().split('T')[0];
+                    // Calculate date 7 days ago
+                    const dateObj = new Date();
+                    dateObj.setDate(dateObj.getDate() - 7);
+                    const sevenDaysAgo = dateObj.toISOString().split('T')[0];
                     
-                    const q = query(collection(db, "workouts"), where("date", "==", today));
+                    // Query logs where date >= 7 days ago
+                    const q = query(collection(db, "workouts"), where("date", ">=", sevenDaysAgo));
                     const querySnapshot = await getDocs(q);
                     
                     const logs = [];
                     querySnapshot.forEach((doc) => {
                         logs.push(doc.data());
                     });
-                    return logs;
+                    
+                    // Sort by date ascending so latest overwrites oldest in the app state
+                    return logs.sort((a, b) => new Date(a.date) - new Date(b.date));
                 } catch (e) {
-                    console.error("Error fetching today's logs: ", e);
+                    console.error("Error fetching weekly logs: ", e);
                     return [];
                 }
             };
@@ -371,18 +376,18 @@
                 }
             };
 
-            // --- SYNC FROM CLOUD FUNCTION ---
+            // --- UPDATED SYNC FROM CLOUD FUNCTION ---
             const handleCloudSync = async () => {
-                if (!window.getTodayLogs) {
+                if (!window.getWeeklyLogs) {
                     alert("Firebase is not connected!");
                     return;
                 }
 
-                if (!confirm("This will overwrite empty slots with today's logged data from the cloud. Continue?")) return;
+                if (!confirm("This will overwrite empty slots with data from the last 7 days found in the cloud. Continue?")) return;
 
-                const logs = await window.getTodayLogs();
+                const logs = await window.getWeeklyLogs();
                 if (!logs || logs.length === 0) {
-                    alert("No logs found for today in the cloud.");
+                    alert("No logs found for the last 7 days in the cloud.");
                     return;
                 }
 
@@ -414,23 +419,26 @@
                             };
                         }
 
-                        // Fill slots
+                        // Fill slots (Note: sets are already sorted by date, so last ones are latest)
                         const currentSession = newData[category][exercise][session];
-                        sets.forEach((setLog, index) => {
+                        // We take the latest 3 sets if multiple sessions exist
+                        const latestSets = sets.slice(-3); 
+                        
+                        latestSets.forEach((setLog, index) => {
                             if (index < 3) {
                                 currentSession.sets[index].reps = setLog.reps;
                                 currentSession.sets[index].weight = setLog.kg;
                             }
                         });
-                        // Use comment from first log if available
-                        if (sets[0].comment) currentSession.comment = sets[0].comment;
+                        // Use comment from latest log
+                        if (sets[sets.length - 1].comment) currentSession.comment = sets[sets.length - 1].comment;
                         
                         currentSession.completed = true;
                     });
 
                     return newData;
                 });
-                alert(`Synced ${logs.length} sets from the cloud!`);
+                alert(`Synced ${logs.length} sets from the last 7 days!`);
             };
 
             const renderProgressTab = () => {
@@ -479,7 +487,8 @@
                     <nav className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-lg flex-none">
                         <div className="flex items-center gap-2"><div className="p-2 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-6 h-6 text-emerald-400" /></div><div><h1 className="font-bold text-lg text-white leading-tight">Weekly Split</h1><p className="text-xs text-slate-400">Push • Pull • Legs (2x)</p></div></div>
                          <div className="flex gap-2">
-                             <button onClick={handleCloudSync} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.CloudDownload className="w-4 h-4" /><span className="hidden sm:inline">Sync Today</span></button>
+                             {/* UPDATED BUTTON */}
+                             <button onClick={handleCloudSync} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.CloudDownload className="w-4 h-4" /><span className="hidden sm:inline">Sync Week</span></button>
                              <button onClick={exportToCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.Download className="w-4 h-4" /><span className="hidden sm:inline">CSV</span></button>
                          </div>
                     </nav>
