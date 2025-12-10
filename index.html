@@ -22,7 +22,7 @@
         import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // ============================================================
-        // 🔴 STEP 1: YOUR FIREBASE KEYS ARE NOW PRE-FILLED 🔴
+        // 🔴 STEP 1: YOUR FIREBASE KEYS ARE PRE-FILLED 🔴
         // ============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8",
@@ -34,17 +34,15 @@
         };
         // ============================================================
 
-        // Safety Check: If you haven't pasted keys yet, don't crash the app
         if (!firebaseConfig.projectId || firebaseConfig.projectId === "") {
             console.warn("Firebase is not configured. Cloud saving will be disabled.");
             window.firebaseConfigured = false;
         } else {
-            // Initialize Firebase only if keys exist
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             window.firebaseConfigured = true;
 
-            // Expose DB functions to React
+            // --- FUNCTION 1: SAVE ---
             window.saveToFirebase = async (dataPayload) => {
                 try {
                     const docRef = await addDoc(collection(db, "workouts"), dataPayload);
@@ -56,13 +54,10 @@
                 }
             };
 
+            // --- FUNCTION 2: GET HISTORY (FOR GRAPH) ---
             window.getFromFirebase = async (exerciseName) => {
                 try {
-                    const q = query(
-                        collection(db, "workouts"), 
-                        where("exercise", "==", exerciseName)
-                    );
-                    
+                    const q = query(collection(db, "workouts"), where("exercise", "==", exerciseName));
                     const querySnapshot = await getDocs(q);
                     const history = [];
                     querySnapshot.forEach((doc) => {
@@ -75,11 +70,29 @@
                             Comment: data.comment
                         });
                     });
-                    
-                    // Sort by date manually
                     return history.sort((a, b) => new Date(a.Date) - new Date(b.Date));
                 } catch (e) {
                     console.error("Error fetching history: ", e);
+                    return [];
+                }
+            };
+
+            // --- FUNCTION 3: GET TODAY'S LOGS (FOR SYNC) ---
+            window.getTodayLogs = async () => {
+                try {
+                    // Get today's date in YYYY-MM-DD format
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    const q = query(collection(db, "workouts"), where("date", "==", today));
+                    const querySnapshot = await getDocs(q);
+                    
+                    const logs = [];
+                    querySnapshot.forEach((doc) => {
+                        logs.push(doc.data());
+                    });
+                    return logs;
+                } catch (e) {
+                    console.error("Error fetching today's logs: ", e);
                     return [];
                 }
             };
@@ -94,19 +107,12 @@
                         slate: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
                         emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
                     },
-                    animation: {
-                        'slide-up': 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                        'fade-in': 'fade-in 0.3s ease-out forwards',
-                    },
-                    keyframes: {
-                        'slide-up': { 'from': { transform: 'translateY(100%)' }, 'to': { transform: 'translateY(0)' } },
-                        'fade-in': { 'from': { opacity: '0', transform: 'scale(0.99)' }, 'to': { opacity: '1', transform: 'scale(1)' } }
-                    }
+                    animation: { 'fade-in': 'fade-in 0.3s ease-out forwards' },
+                    keyframes: { 'fade-in': { 'from': { opacity: '0', transform: 'scale(0.99)' }, 'to': { opacity: '1', transform: 'scale(1)' } } }
                 }
             }
         }
     </script>
-    
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -122,7 +128,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- ICONS ---
         const Icons = {
             Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
             Coffee: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>,
@@ -134,15 +139,13 @@
             List: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
             Lightbulb: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
             Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-            Database: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            CloudDownload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>,
             MessageSquare: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
             Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             Refresh: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
             History: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>,
             Alert: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
         };
-
-        // --- APP LOGIC ---
 
         const WORKOUT_SPLIT = {
             "Push": ["Flat Dumbbell Bench Press", "Incline Dumbbell Press", "Dumbbell Overhead Press", "Dumbbell Lateral Raises", "Overhead Tricep Extension", "Double Tricep Kickbacks"],
@@ -259,6 +262,7 @@
                 }
             }, []);
 
+            // Handle Progress Tab Fetching
             useEffect(() => {
                 if (activeDay === 'Progress' && selectedHistoryExercise) {
                     setIsLoadingHistory(true);
@@ -367,6 +371,68 @@
                 }
             };
 
+            // --- SYNC FROM CLOUD FUNCTION ---
+            const handleCloudSync = async () => {
+                if (!window.getTodayLogs) {
+                    alert("Firebase is not connected!");
+                    return;
+                }
+
+                if (!confirm("This will overwrite empty slots with today's logged data from the cloud. Continue?")) return;
+
+                const logs = await window.getTodayLogs();
+                if (!logs || logs.length === 0) {
+                    alert("No logs found for today in the cloud.");
+                    return;
+                }
+
+                setWorkoutData(prev => {
+                    const newData = { ...prev };
+                    
+                    // Group logs by Exercise and Session
+                    const groupedLogs = {};
+                    logs.forEach(log => {
+                        const key = `${log.category}|${log.exercise}|${log.session}`;
+                        if (!groupedLogs[key]) groupedLogs[key] = [];
+                        groupedLogs[key].push(log);
+                    });
+
+                    // Update State
+                    Object.keys(groupedLogs).forEach(key => {
+                        const [category, exercise, session] = key.split('|');
+                        const sets = groupedLogs[key];
+                        
+                        if (!newData[category]) newData[category] = {};
+                        if (!newData[category][exercise]) newData[category][exercise] = {};
+                        
+                        // Initialize if missing
+                        if (!newData[category][exercise][session]) {
+                            newData[category][exercise][session] = { 
+                                sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], 
+                                completed: false, 
+                                comment: "" 
+                            };
+                        }
+
+                        // Fill slots
+                        const currentSession = newData[category][exercise][session];
+                        sets.forEach((setLog, index) => {
+                            if (index < 3) {
+                                currentSession.sets[index].reps = setLog.reps;
+                                currentSession.sets[index].weight = setLog.kg;
+                            }
+                        });
+                        // Use comment from first log if available
+                        if (sets[0].comment) currentSession.comment = sets[0].comment;
+                        
+                        currentSession.completed = true;
+                    });
+
+                    return newData;
+                });
+                alert(`Synced ${logs.length} sets from the cloud!`);
+            };
+
             const renderProgressTab = () => {
                 const allExercises = [...WORKOUT_SPLIT["Push"], ...WORKOUT_SPLIT["Pull"], ...WORKOUT_SPLIT["Legs"]].sort();
                 if (selectedHistoryExercise) {
@@ -412,7 +478,10 @@
                 <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col">
                     <nav className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-lg flex-none">
                         <div className="flex items-center gap-2"><div className="p-2 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-6 h-6 text-emerald-400" /></div><div><h1 className="font-bold text-lg text-white leading-tight">Weekly Split</h1><p className="text-xs text-slate-400">Push • Pull • Legs (2x)</p></div></div>
-                         <button onClick={exportToCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.Download className="w-4 h-4" /><span className="hidden sm:inline">Export CSV</span></button>
+                         <div className="flex gap-2">
+                             <button onClick={handleCloudSync} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.CloudDownload className="w-4 h-4" /><span className="hidden sm:inline">Sync Today</span></button>
+                             <button onClick={exportToCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.Download className="w-4 h-4" /><span className="hidden sm:inline">CSV</span></button>
+                         </div>
                     </nav>
                     <div className="sticky top-[69px] z-20 bg-slate-950 border-b border-slate-800 overflow-x-auto no-scrollbar flex-none">
                         <div className="flex p-2 min-w-max">
