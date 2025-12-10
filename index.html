@@ -8,20 +8,84 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- PWA Manifest (Embedded) -->
     <link rel="manifest" href='data:application/manifest+json;base64,eyJuYW1lIjoiV29ya291dCBUcmFja2VyIiwic2hvcnRfbmFtZSI6IldvcmtvdXQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzAyMDYxNyIsInRoZW1lX2NvbG9yIjoiIzBmMTcyYSIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8yNTU0LzI1NTQwMzcucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=' />
 
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FIREBASE SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ============================================================
+        // 🔴 STEP 1: YOUR FIREBASE KEYS ARE NOW PRE-FILLED 🔴
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8",
+            authDomain: "gym-tracker-b14ce.firebaseapp.com",
+            projectId: "gym-tracker-b14ce",
+            storageBucket: "gym-tracker-b14ce.firebasestorage.app",
+            messagingSenderId: "122178207860",
+            appId: "1:122178207860:web:05a1454788223ac39d9121"
+        };
+        // ============================================================
+
+        // Safety Check: If you haven't pasted keys yet, don't crash the app
+        if (!firebaseConfig.projectId || firebaseConfig.projectId === "") {
+            console.warn("Firebase is not configured. Cloud saving will be disabled.");
+            window.firebaseConfigured = false;
+        } else {
+            // Initialize Firebase only if keys exist
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            window.firebaseConfigured = true;
+
+            // Expose DB functions to React
+            window.saveToFirebase = async (dataPayload) => {
+                try {
+                    const docRef = await addDoc(collection(db, "workouts"), dataPayload);
+                    console.log("Document written with ID: ", docRef.id);
+                    return { success: true };
+                } catch (e) {
+                    console.error("Error adding document: ", e);
+                    return { success: false, error: e.message };
+                }
+            };
+
+            window.getFromFirebase = async (exerciseName) => {
+                try {
+                    const q = query(
+                        collection(db, "workouts"), 
+                        where("exercise", "==", exerciseName)
+                    );
+                    
+                    const querySnapshot = await getDocs(q);
+                    const history = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        history.push({
+                            Date: data.date,
+                            Exercise: data.exercise,
+                            Kg: data.kg,
+                            Reps: data.reps,
+                            Comment: data.comment
+                        });
+                    });
+                    
+                    // Sort by date manually
+                    return history.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                } catch (e) {
+                    console.error("Error fetching history: ", e);
+                    return [];
+                }
+            };
+        }
+    </script>
     
-    <!-- Custom Config for Tailwind -->
     <script>
         tailwind.config = {
             theme: {
@@ -75,55 +139,31 @@
             Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             Refresh: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>,
             History: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>,
+            Alert: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
         };
 
         // --- APP LOGIC ---
 
         const WORKOUT_SPLIT = {
-            "Push": [
-                "Flat Dumbbell Bench Press", 
-                "Incline Dumbbell Press", 
-                "Dumbbell Overhead Press", 
-                "Dumbbell Lateral Raises", 
-                "Overhead Tricep Extension",
-                "Double Tricep Kickbacks"
-            ],
-            "Pull": [
-                "One-Arm Dumbbell Row", 
-                "Dumbbell Pullover", 
-                "Chest-Supported Row", 
-                "Rear Delt Fly", 
-                "Dumbbell Bicep Curl", 
-                "Hammer Curl"
-            ],
-            "Legs": [
-                "Goblet Squat", 
-                "Bulgarian Split Squat", 
-                "Dumbbell RDL (Romanian Deadlift)", 
-                "Walking Lunges", 
-                "Dumbbell Calf Raise"
-            ],
+            "Push": ["Flat Dumbbell Bench Press", "Incline Dumbbell Press", "Dumbbell Overhead Press", "Dumbbell Lateral Raises", "Overhead Tricep Extension", "Double Tricep Kickbacks"],
+            "Pull": ["One-Arm Dumbbell Row", "Dumbbell Pullover", "Chest-Supported Row", "Rear Delt Fly", "Dumbbell Bicep Curl", "Hammer Curl"],
+            "Legs": ["Goblet Squat", "Bulgarian Split Squat", "Dumbbell RDL (Romanian Deadlift)", "Walking Lunges", "Dumbbell Calf Raise"],
             "Rest": [] 
         };
 
         const EXERCISE_NOTES = {
-            // PUSH
             "Flat Dumbbell Bench Press": "Lie flat on the bench. Press dumbbells up, bringing them together at the top without touching. Lower slowly.",
             "Incline Dumbbell Press": "Set bench to a 30-45 degree angle. Focus on the upper chest. Keep elbows slightly tucked.",
             "Dumbbell Overhead Press": "Perform standing or seated. Keep core tight and glutes squeezed. Don't arch your lower back excessively.",
             "Dumbbell Lateral Raises": "Stand tall. Raise arms to the side with a slight bend in the elbow. Lead with your elbows, not hands.",
             "Overhead Tricep Extension": "Keep elbows pointing forward/up, not flaring out. Lower the weight behind your head for a deep stretch.",
             "Double Tricep Kickbacks": "Nothing!",
-            
-            // PULL
             "One-Arm Dumbbell Row": "Support yourself on a bench. Keep your back flat. Pull the dumbbell towards your hip, not your chest.",
             "Dumbbell Pullover": "Lie perpendicular on a bench or flat on floor. Keep arms slightly bent. Lower weight behind head until you feel a stretch in lats.",
             "Chest-Supported Row": "Lie face down on an incline bench. Row dumbbells up, squeezing shoulder blades together at the top.",
             "Rear Delt Fly": "Hinge at hips so torso is nearly parallel to floor. Fly arms out to side. Focus on the back of the shoulders.",
             "Dumbbell Bicep Curl": "Keep elbows pinned to your sides. Supinate (rotate) palms up as you lift.",
             "Hammer Curl": "Keep palms facing each other throughout the movement. Great for forearm and brachialis.",
-            
-            // LEGS
             "Goblet Squat": "Hold one heavy DB at chest height. Squat deep, keeping chest up and knees tracking over toes.",
             "Bulgarian Split Squat": "Place one foot on a bench behind you. Lower your hips until back knee almost touches ground. Lean forward slightly for glutes.",
             "Dumbbell RDL (Romanian Deadlift)": "Slight bend in knees. Hinge at hips, pushing butt back. Lower weights until hamstrings are tight. Keep back flat.",
@@ -131,21 +171,17 @@
             "Dumbbell Calf Raise": "Hold dumbbells at sides. Raise heels as high as possible. Pause at the top."
         };
 
-        const generateSessionLabels = () => {
-            return ['Session 1', 'Session 2']; 
-        }
+        const generateSessionLabels = () => ['Session 1', 'Session 2'];
 
         const generateInitialData = () => {
             const data = {};
             const sessionLabels = generateSessionLabels();
-            
             Object.keys(WORKOUT_SPLIT).forEach(dayKey => {
                 if (dayKey === "Rest") return;
                 data[dayKey] = {};
                 WORKOUT_SPLIT[dayKey].forEach(ex => {
                     data[dayKey][ex] = {};
                     sessionLabels.forEach(label => {
-                        // 3 sets per individual session
                         data[dayKey][ex][label] = { 
                             sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
                             completed: false,
@@ -157,52 +193,31 @@
             return data;
         };
 
-        // --- NEW COMPONENT: PROGRESS GRAPH (DUAL SERIES) ---
         const ProgressChart = ({ historyData }) => {
             if (!historyData || historyData.length === 0) return <div className="text-slate-500 text-center py-8">No history data available yet.</div>;
 
-            // Process Data: Find Best and Worst per Date
             const groupedByDate = {};
             historyData.forEach(row => {
                 const date = row.Date;
                 const weight = parseFloat(row.Kg) || 0;
                 const reps = parseInt(row.Reps) || 0;
-                
                 if (!groupedByDate[date]) {
                     groupedByDate[date] = { best: { weight, reps }, worst: { weight, reps } };
                 } else {
-                    // Update Best (Highest Weight, then Highest Reps)
                     const currentBest = groupedByDate[date].best;
-                    if (weight > currentBest.weight || (weight === currentBest.weight && reps > currentBest.reps)) {
-                        groupedByDate[date].best = { weight, reps };
-                    }
-                    
-                    // Update Worst (Lowest Weight, then Lowest Reps)
+                    if (weight > currentBest.weight || (weight === currentBest.weight && reps > currentBest.reps)) groupedByDate[date].best = { weight, reps };
                     const currentWorst = groupedByDate[date].worst;
-                    if (weight < currentWorst.weight || (weight === currentWorst.weight && reps < currentWorst.reps)) {
-                        groupedByDate[date].worst = { weight, reps };
-                    }
+                    if (weight < currentWorst.weight || (weight === currentWorst.weight && reps < currentWorst.reps)) groupedByDate[date].worst = { weight, reps };
                 }
             });
 
-            // Convert to array and sort
-            const chartData = Object.keys(groupedByDate)
-                .map(date => ({ 
-                    date, 
-                    best: groupedByDate[date].best, 
-                    worst: groupedByDate[date].worst 
-                }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            // Visual Settings
+            const chartData = Object.keys(groupedByDate).map(date => ({ date, best: groupedByDate[date].best, worst: groupedByDate[date].worst })).sort((a, b) => new Date(a.date) - new Date(b.date));
             const height = 220;
             const width = 320;
             const padding = 30;
             const maxVal = Math.max(...chartData.map(d => d.best.weight), 10);
-            
             const getX = (index) => (index / (chartData.length - 1 || 1)) * (width - 2 * padding) + padding;
             const getY = (val) => height - padding - (val / maxVal) * (height - 2 * padding);
-
             const pointsBest = chartData.map((d, i) => `${getX(i)},${getY(d.best.weight)}`).join(' ');
             const pointsWorst = chartData.map((d, i) => `${getX(i)},${getY(d.worst.weight)}`).join(' ');
 
@@ -214,41 +229,12 @@
                         <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span><span className="text-red-400">Worst Set</span></div>
                      </div>
                      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-                        {/* Axes */}
                         <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#334155" strokeWidth="2" />
                         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#334155" strokeWidth="2" />
-                        
-                        {/* Worst Line (Red) */}
                         <polyline points={pointsWorst} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50" />
-                        
-                        {/* Best Line (Green) */}
                         <polyline points={pointsBest} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
-                        
-                        {/* Points for Worst */}
-                        {chartData.map((d, i) => {
-                            const x = getX(i);
-                            const y = getY(d.worst.weight);
-                            return (
-                                <g key={`worst-${i}`} className="group cursor-pointer">
-                                    <circle cx={x} cy={y} r="4" fill="#0f172a" stroke="#ef4444" strokeWidth="2" className="transition-all group-hover:r-6 group-hover:fill-red-500/20" />
-                                    <title>{`WORST SET\nDate: ${d.date}\nWeight: ${d.worst.weight} kg\nReps: ${d.worst.reps}`}</title>
-                                </g>
-                            )
-                        })}
-
-                        {/* Points for Best */}
-                        {chartData.map((d, i) => {
-                            const x = getX(i);
-                            const y = getY(d.best.weight);
-                            return (
-                                <g key={`best-${i}`} className="group cursor-pointer">
-                                    <circle cx={x} cy={y} r="5" fill="#0f172a" stroke="#10b981" strokeWidth="2" className="transition-all group-hover:r-7 group-hover:fill-emerald-500/20" />
-                                    <title>{`BEST SET\nDate: ${d.date}\nWeight: ${d.best.weight} kg\nReps: ${d.best.reps}`}</title>
-                                    <text x={x} y={y - 12} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" className="opacity-0 group-hover:opacity-100 transition-opacity select-none bg-black pointer-events-none">{d.best.weight}kg</text>
-                                    <text x={x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="8" className="pointer-events-none">{d.date.slice(5)}</text>
-                                </g>
-                            )
-                        })}
+                        {chartData.map((d, i) => { const x = getX(i); const y = getY(d.worst.weight); return (<g key={`worst-${i}`} className="group cursor-pointer"><circle cx={x} cy={y} r="4" fill="#0f172a" stroke="#ef4444" strokeWidth="2" className="transition-all group-hover:r-6 group-hover:fill-red-500/20" /><title>{`WORST SET\nDate: ${d.date}\nWeight: ${d.worst.weight} kg\nReps: ${d.worst.reps}`}</title></g>)})}
+                        {chartData.map((d, i) => { const x = getX(i); const y = getY(d.best.weight); return (<g key={`best-${i}`} className="group cursor-pointer"><circle cx={x} cy={y} r="5" fill="#0f172a" stroke="#10b981" strokeWidth="2" className="transition-all group-hover:r-7 group-hover:fill-emerald-500/20" /><title>{`BEST SET\nDate: ${d.date}\nWeight: ${d.best.weight} kg\nReps: ${d.best.reps}`}</title><text x={x} y={y - 12} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" className="opacity-0 group-hover:opacity-100 transition-opacity select-none bg-black pointer-events-none">{d.best.weight}kg</text><text x={x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="8" className="pointer-events-none">{d.date.slice(5)}</text></g>)})}
                     </svg>
                 </div>
             );
@@ -258,72 +244,46 @@
             const [activeDay, setActiveDay] = useState("Push");
             const [sessions] = useState(generateSessionLabels());
             const [showResetConfirm, setShowResetConfirm] = useState(false);
-            
-            // History State
             const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
             const [historyData, setHistoryData] = useState([]);
             const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-            // Check if running in Electron
-            const isElectron = typeof window !== 'undefined' && typeof window.require === 'function';
-
-            const [workoutData, setWorkoutData] = useState(() => {
-                const saved = localStorage.getItem('workoutData_v9');
-                return saved ? JSON.parse(saved) : generateInitialData();
-            });
+            const [workoutData, setWorkoutData] = useState(() => { const saved = localStorage.getItem('workoutData_v9'); return saved ? JSON.parse(saved) : generateInitialData(); });
             const [selectedCell, setSelectedCell] = useState(null);
-            
-            useEffect(() => {
-                localStorage.setItem('workoutData_v9', JSON.stringify(workoutData));
-            }, [workoutData]);
+            const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
 
-            // Fetch History when an exercise is selected in Progress Tab
+            useEffect(() => { localStorage.setItem('workoutData_v9', JSON.stringify(workoutData)); }, [workoutData]);
+
+            useEffect(() => {
+                if (window.firebaseConfigured === false) {
+                    setShowFirebaseAlert(true);
+                }
+            }, []);
+
             useEffect(() => {
                 if (activeDay === 'Progress' && selectedHistoryExercise) {
                     setIsLoadingHistory(true);
-                    
-                    if (isElectron) {
-                        // Desktop Mode: Fetch from Excel
-                        const fetchHistory = async () => {
-                            try {
-                                const { ipcRenderer } = window.require('electron');
-                                const data = await ipcRenderer.invoke('get-workout-history', selectedHistoryExercise);
-                                setHistoryData(data);
-                            } catch (err) {
-                                console.error("Failed to fetch history", err);
-                                setHistoryData([]);
-                            }
-                            setIsLoadingHistory(false);
-                        };
-                        fetchHistory();
-                    } else {
-                        // Mobile Mode: Fetch from LocalStorage
-                        try {
-                            const localHistory = JSON.parse(localStorage.getItem('workoutHistory_v1')) || [];
-                            // Filter for selected exercise
-                            const exerciseHistory = localHistory
-                                .filter(item => item.Exercise === selectedHistoryExercise)
-                                .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                            setHistoryData(exerciseHistory);
-                        } catch (e) {
-                            console.error("Error reading local history", e);
+                    const fetchFirebase = async () => {
+                        if (window.getFromFirebase && window.firebaseConfigured) {
+                            const data = await window.getFromFirebase(selectedHistoryExercise);
+                            setHistoryData(data);
+                        } else {
+                            console.error("Firebase Not Initialized");
                             setHistoryData([]);
                         }
                         setIsLoadingHistory(false);
-                    }
+                    };
+                    fetchFirebase();
                 }
-            }, [selectedHistoryExercise, activeDay, isElectron]);
+            }, [selectedHistoryExercise, activeDay]);
 
             const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
                 setWorkoutData(prev => {
                     const newData = { ...prev };
                     if (!newData[dayKey]) newData[dayKey] = {};
                     if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
-                    
                     const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
                     const newSets = [...sessionData.sets];
                     newSets[setIndex] = { ...newSets[setIndex], [field]: value };
-                    
                     const isCompleted = newSets.some(s => s.reps !== '' || s.weight !== '');
                     newData[dayKey][exercise][session] = { ...sessionData, sets: newSets, completed: isCompleted };
                     return newData;
@@ -335,7 +295,6 @@
                     const newData = { ...prev };
                     if (!newData[dayKey]) newData[dayKey] = {};
                     if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
-                    
                     const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
                     newData[dayKey][exercise][session] = { ...sessionData, comment: value };
                     return newData;
@@ -348,13 +307,8 @@
             };
 
             const currentExercises = WORKOUT_SPLIT[activeDay];
-            
-            const resetAllData = () => {
-                setWorkoutData(generateInitialData());
-                setShowResetConfirm(false);
-            };
+            const resetAllData = () => { setWorkoutData(generateInitialData()); setShowResetConfirm(false); };
 
-            // Keep CSV export as backup
             const exportToCSV = () => {
                 let csvContent = "Day,Exercise,Session,Set Number,Weight (kg),Reps,Comment\n";
                 Object.keys(workoutData).forEach(day => {
@@ -383,75 +337,38 @@
                 document.body.removeChild(link);
             };
 
-            // NEW FUNCTION: Save entire session
             const handleSaveSession = async (sessionName) => {
+                if (!window.firebaseConfigured) {
+                    alert("Firebase keys are missing! Data will not be saved to the cloud.");
+                    return;
+                }
+
                 const payload = [];
                 const exercises = WORKOUT_SPLIT[activeDay];
-                
                 exercises.forEach(exercise => {
                     const sessionData = workoutData[activeDay]?.[exercise]?.[sessionName];
                     if (sessionData && sessionData.sets) {
                         const validSets = sessionData.sets.filter(s => s.weight && s.reps);
                         validSets.forEach(s => {
-                            payload.push({
-                                exercise: exercise,
-                                reps: parseInt(s.reps),
-                                kg: parseFloat(s.weight),
-                                category: activeDay,
-                                session: sessionName,
-                                comment: sessionData.comment || ''
-                            });
+                            payload.push({ date: new Date().toISOString().split('T')[0], exercise: exercise, reps: parseInt(s.reps), kg: parseFloat(s.weight), category: activeDay, session: sessionName, comment: sessionData.comment || '' });
                         });
                     }
                 });
 
-                if (payload.length === 0) {
-                    alert("No data found to save for " + sessionName + ". Please log some sets first!");
-                    return;
-                }
+                if (payload.length === 0) { alert("No data found to save!"); return; }
 
-                if (isElectron) {
-                    try {
-                        const { ipcRenderer } = window.require('electron');
-                        const result = await ipcRenderer.invoke('save-workout-to-db', payload);
-                        if (result.success) {
-                            alert(`Success! Saved ${payload.length} sets for ${sessionName} to Excel.`);
-                        } else {
-                            alert("Error saving: " + result.error);
-                        }
-                    } catch (error) {
-                        alert("Error communicating with app: " + error);
+                if (window.saveToFirebase) {
+                    let successCount = 0;
+                    for (const item of payload) {
+                        const result = await window.saveToFirebase(item);
+                        if (result.success) successCount++;
                     }
-                } else {
-                    // --- MOBILE / WEB MODE: SAVE TO LOCAL STORAGE ---
-                    try {
-                        const today = new Date().toISOString().split('T')[0];
-                        
-                        // Map payload to storage format (capitalized keys to match main.js logic)
-                        const newHistoryItems = payload.map(item => ({
-                            Date: today,
-                            Exercise: item.exercise,
-                            Reps: item.reps,
-                            Kg: item.kg,
-                            Comment: item.comment
-                        }));
-
-                        const existingHistory = JSON.parse(localStorage.getItem('workoutHistory_v1')) || [];
-                        const updatedHistory = [...existingHistory, ...newHistoryItems];
-                        
-                        localStorage.setItem('workoutHistory_v1', JSON.stringify(updatedHistory));
-                        alert(`Success! Saved ${payload.length} sets to Local History.`);
-                    } catch (e) {
-                        alert("Error saving to local storage: " + e);
-                    }
+                    alert(`Saved ${successCount} sets to Firebase!`);
                 }
             };
 
-            // --- VIEW: PROGRESS TAB CONTENT ---
             const renderProgressTab = () => {
-                // Flatten all exercises into one list
                 const allExercises = [...WORKOUT_SPLIT["Push"], ...WORKOUT_SPLIT["Pull"], ...WORKOUT_SPLIT["Legs"]].sort();
-
                 if (selectedHistoryExercise) {
                     return (
                         <div className="flex flex-col h-full animate-fade-in">
@@ -459,30 +376,18 @@
                                 <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
                                 <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
                             </div>
-                            
                             <div className="flex-1 overflow-y-auto space-y-6">
-                                {/* GRAPH */}
                                 <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
                                     <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
                                     {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
                                 </div>
-
-                                {/* DATA TABLE */}
                                 <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
                                     <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
                                     <div className="space-y-2">
-                                        <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2">
-                                            <span>Date</span>
-                                            <span className="text-center">Set</span>
-                                            <span className="text-center">Kg</span>
-                                            <span className="text-center">Reps</span>
-                                        </div>
+                                        <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
                                         {historyData.length > 0 ? historyData.map((row, idx) => (
                                             <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
-                                                <span className="text-slate-400">{row.Date}</span>
-                                                <span className="text-center text-slate-500">{idx + 1}</span>
-                                                <span className="text-center font-bold text-emerald-400">{row.Kg}</span>
-                                                <span className="text-center font-mono">{row.Reps}</span>
+                                                <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
                                             </div>
                                         )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
                                     </div>
@@ -491,22 +396,12 @@
                         </div>
                     );
                 }
-
                 return (
                     <div className="flex flex-col h-full animate-fade-in">
-                        <div className="text-center mb-6 py-4">
-                            <h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2>
-                            <p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p>
-                        </div>
+                        <div className="text-center mb-6 py-4"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pb-4 custom-scrollbar">
                             {allExercises.map(ex => (
-                                <button 
-                                    key={ex} 
-                                    onClick={() => setSelectedHistoryExercise(ex)}
-                                    className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"
-                                >
-                                    <span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span>
-                                </button>
+                                <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
                             ))}
                         </div>
                     </div>
@@ -516,64 +411,25 @@
             return (
                 <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col">
                     <nav className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-lg flex-none">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-6 h-6 text-emerald-400" /></div>
-                            <div><h1 className="font-bold text-lg text-white leading-tight">Weekly Split</h1><p className="text-xs text-slate-400">Push • Pull • Legs (2x)</p></div>
-                        </div>
-                         <button onClick={exportToCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors">
-                            <Icons.Download className="w-4 h-4" />
-                            <span className="hidden sm:inline">Export CSV</span>
-                        </button>
+                        <div className="flex items-center gap-2"><div className="p-2 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-6 h-6 text-emerald-400" /></div><div><h1 className="font-bold text-lg text-white leading-tight">Weekly Split</h1><p className="text-xs text-slate-400">Push • Pull • Legs (2x)</p></div></div>
+                         <button onClick={exportToCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"><Icons.Download className="w-4 h-4" /><span className="hidden sm:inline">Export CSV</span></button>
                     </nav>
-
                     <div className="sticky top-[69px] z-20 bg-slate-950 border-b border-slate-800 overflow-x-auto no-scrollbar flex-none">
                         <div className="flex p-2 min-w-max">
-                            {/* REGULAR DAYS */}
-                            {Object.keys(WORKOUT_SPLIT).map((day) => {
-                                const isRest = day === "Rest";
-                                const isActive = activeDay === day;
-                                return (
-                                    <button key={day} onClick={() => { setActiveDay(day); setSelectedHistoryExercise(null); }} className={`relative px-4 py-2 mx-1 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${isActive ? (isRest ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50' : 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50') : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>
-                                        {day} {isActive && <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full mb-1 ${isRest ? 'bg-blue-500' : 'bg-emerald-500'}`} />}
-                                    </button>
-                                );
-                            })}
-                            {/* PROGRESS TAB */}
-                             <button onClick={() => setActiveDay('Progress')} className={`relative px-4 py-2 mx-1 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${activeDay === 'Progress' ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>
-                                Progress {activeDay === 'Progress' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full mb-1 bg-purple-500" />}
-                            </button>
+                            {Object.keys(WORKOUT_SPLIT).map((day) => { const isRest = day === "Rest"; const isActive = activeDay === day; return (<button key={day} onClick={() => { setActiveDay(day); setSelectedHistoryExercise(null); }} className={`relative px-4 py-2 mx-1 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${isActive ? (isRest ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50' : 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50') : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>{day} {isActive && <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full mb-1 ${isRest ? 'bg-blue-500' : 'bg-emerald-500'}`} />}</button>); })}
+                             <button onClick={() => setActiveDay('Progress')} className={`relative px-4 py-2 mx-1 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${activeDay === 'Progress' ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>Progress {activeDay === 'Progress' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full mb-1 bg-purple-500" />}</button>
                         </div>
                     </div>
-
                     <main className="flex-1 p-2 md:p-6 overflow-hidden flex flex-col min-h-0">
                         {activeDay === "Rest" ? (
-                            <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-0 animate-fade-in">
-                                <div className="p-6 bg-blue-500/10 rounded-full mb-6 ring-4 ring-blue-500/20"><Icons.Coffee className="w-16 h-16 text-blue-400" /></div>
-                                <h2 className="text-3xl font-bold text-white mb-4">Rest & Recovery</h2>
-                                <p className="text-slate-400 max-w-md leading-relaxed mb-8">Muscles grow during rest, not during the workout. Eat well, sleep 8 hours, and stay hydrated to prepare for the next session.</p>
-                                
-                                <button 
-                                    onClick={() => setShowResetConfirm(true)}
-                                    className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl flex items-center gap-2 transition-all font-bold active:scale-95"
-                                >
-                                    <Icons.Refresh className="w-5 h-5" />
-                                    Start New Week (Reset)
-                                </button>
-                            </div>
-                        ) : activeDay === "Progress" ? (
-                            renderProgressTab()
-                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-0 animate-fade-in"><div className="p-6 bg-blue-500/10 rounded-full mb-6 ring-4 ring-blue-500/20"><Icons.Coffee className="w-16 h-16 text-blue-400" /></div><h2 className="text-3xl font-bold text-white mb-4">Rest & Recovery</h2><p className="text-slate-400 max-w-md leading-relaxed mb-8">Muscles grow during rest, not during the workout. Eat well, sleep 8 hours, and stay hydrated to prepare for the next session.</p><button onClick={() => setShowResetConfirm(true)} className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl flex items-center gap-2 transition-all font-bold active:scale-95"><Icons.Refresh className="w-5 h-5" />Start New Week (Reset)</button></div>
+                        ) : activeDay === "Progress" ? ( renderProgressTab() ) : (
                             <>
                                 <div className="flex-1 relative border border-slate-800 rounded-xl bg-slate-900/50 shadow-2xl overflow-hidden flex flex-col animate-fade-in mb-4">
                                     <div className="flex bg-slate-900 border-b border-slate-800 sticky top-0 z-20">
                                         <div className="flex-none w-48 md:w-64 p-4 border-r border-slate-800 bg-slate-900 z-30 flex items-center shadow-[4px_0_24px_-2px_rgba(0,0,0,0.5)]"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{activeDay} Exercises</span></div>
-                                        <div className="flex flex-1 overflow-x-auto no-scrollbar">
-                                            {sessions.map((session) => (
-                                                <div key={session} className="flex-1 min-w-[100px] p-4 border-r border-slate-800/50 flex flex-col items-center justify-center text-center"><span className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-1">{session}</span></div>
-                                            ))}
-                                        </div>
+                                        <div className="flex flex-1 overflow-x-auto no-scrollbar">{sessions.map((session) => (<div key={session} className="flex-1 min-w-[100px] p-4 border-r border-slate-800/50 flex flex-col items-center justify-center text-center"><span className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-1">{session}</span></div>))}</div>
                                     </div>
-
                                     <div className="flex-1 overflow-auto custom-scrollbar">
                                         {currentExercises.map((exercise) => (
                                             <div key={exercise} className="flex border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors group">
@@ -583,73 +439,32 @@
                                                         const completedSets = getCompletedSets(activeDay, exercise, session);
                                                         const isCompleted = completedSets.length > 0;
                                                         const isSelected = selectedCell?.exercise === exercise && selectedCell?.session === session;
-                                                        return (
-                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-2 border-r border-slate-800/50 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : 'hover:bg-slate-800/50'}`} onClick={() => { setSelectedCell({ dayKey: activeDay, exercise, session }); /* Removed setViewMode */ }}>
-                                                                {isCompleted ? (
-                                                                    <div className="flex flex-col gap-1 w-full px-2">
-                                                                        {completedSets.map((set, idx) => (
-                                                                            <div key={idx} className="flex justify-center items-center gap-1 text-[11px] font-mono text-emerald-400"><span>{set.weight || '-'}kg</span><span className="text-slate-600">×</span><span>{set.reps || '-'}</span></div>
-                                                                        ))}
-                                                                        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] opacity-50"></div>
-                                                                    </div>
-                                                                ) : (<div className="w-8 h-1 rounded-full bg-slate-800 group-hover:bg-slate-700"></div>)}
-                                                            </div>
-                                                        );
+                                                        return (<div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-2 border-r border-slate-800/50 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : 'hover:bg-slate-800/50'}`} onClick={() => { setSelectedCell({ dayKey: activeDay, exercise, session }); }} >{isCompleted ? (<div className="flex flex-col gap-1 w-full px-2">{completedSets.map((set, idx) => (<div key={idx} className="flex justify-center items-center gap-1 text-[11px] font-mono text-emerald-400"><span>{set.weight || '-'}kg</span><span className="text-slate-600">×</span><span>{set.reps || '-'}</span></div>))}<div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] opacity-50"></div></div>) : (<div className="w-8 h-1 rounded-full bg-slate-800 group-hover:bg-slate-700"></div>)}</div>);
                                                     })}
                                                 </div>
                                             </div>
                                         ))}
-                                        
-                                        {/* NEW FOOTER ROW FOR SAVE BUTTONS */}
                                         <div className="flex border-b border-slate-800/50 bg-slate-900/50">
-                                            <div className="flex-none w-48 md:w-64 p-4 border-r border-slate-800 bg-slate-900/95 sticky left-0 z-10 flex items-center">
-                                                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Session Actions</span>
-                                            </div>
-                                            <div className="flex flex-1">
-                                                {sessions.map((session) => (
-                                                    <div key={session} className="flex-1 min-w-[100px] p-2 border-r border-slate-800/50 flex flex-col items-center justify-center">
-                                                         <button 
-                                                            onClick={() => handleSaveSession(session)}
-                                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 whitespace-nowrap active:scale-[0.98]"
-                                                         >
-                                                            <Icons.Save className="w-3 h-3" /> Save All
-                                                         </button>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <div className="flex-none w-48 md:w-64 p-4 border-r border-slate-800 bg-slate-900/95 sticky left-0 z-10 flex items-center"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Session Actions</span></div>
+                                            <div className="flex flex-1">{sessions.map((session) => (<div key={session} className="flex-1 min-w-[100px] p-2 border-r border-slate-800/50 flex flex-col items-center justify-center"><button onClick={() => handleSaveSession(session)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 whitespace-nowrap active:scale-[0.98]"><Icons.Save className="w-3 h-3" /> Save All</button></div>))}</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex-none p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 animate-fade-in mx-1">
-                                    <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-400 mb-2"><Icons.BarChart2 className="w-4 h-4" />Progression Strategy</h4>
-                                    <p className="text-xs text-slate-400 leading-relaxed">Pick a weight you can do for the bottom of the rep range (e.g., 8 reps). Keep that weight until you can do 3 sets of the top number (e.g., 12 reps) with perfect form. Only then grab the heavier dumbbell.</p>
-                                </div>
+                                <div className="flex-none p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 animate-fade-in mx-1"><h4 className="flex items-center gap-2 text-sm font-bold text-emerald-400 mb-2"><Icons.BarChart2 className="w-4 h-4" />Progression Strategy</h4><p className="text-xs text-slate-400 leading-relaxed">Pick a weight you can do for the bottom of the rep range (e.g., 8 reps). Keep that weight until you can do 3 sets of the top number (e.g., 12 reps) with perfect form. Only then grab the heavier dumbbell.</p></div>
                             </>
                         )}
                     </main>
-
                     {selectedCell && (
                         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end pointer-events-none">
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto transition-opacity" onClick={() => setSelectedCell(null)}></div>
                             <div className="pointer-events-auto w-full sm:w-[400px] h-[85vh] sm:h-screen bg-slate-900 border-l border-slate-700 shadow-2xl transform transition-transform duration-300 flex flex-col animate-slide-up sm:animate-slide-left">
                                 <div className="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-900 sticky top-0">
-                                    <div className="flex-1 mr-4">
-                                        <h2 className="text-xl font-bold text-white mb-1 line-clamp-1">{selectedCell.exercise}</h2>
-                                        <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium"><Icons.Calendar className="w-4 h-4" />{selectedCell.session}</div>
-                                    </div>
+                                    <div className="flex-1 mr-4"><h2 className="text-xl font-bold text-white mb-1 line-clamp-1">{selectedCell.exercise}</h2><div className="flex items-center gap-2 text-emerald-400 text-sm font-medium"><Icons.Calendar className="w-4 h-4" />{selectedCell.session}</div></div>
                                     <button onClick={() => setSelectedCell(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><Icons.X className="w-6 h-6" /></button>
                                 </div>
-
-                                {/* REMOVED TAB TOGGLES FROM HERE */}
-
                                 <div className="flex-1 p-6 overflow-y-auto">
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-4 px-4">
-                                            <div className="w-8 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Set</div>
-                                            <div className="flex-1 grid grid-cols-2 gap-4"><div className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider">KG</div><div className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider">REPS</div></div>
-                                        </div>
-                                        
-                                        {/* Safety check: Ensure the object path exists before mapping */}
+                                        <div className="flex items-center gap-4 px-4"><div className="w-8 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Set</div><div className="flex-1 grid grid-cols-2 gap-4"><div className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider">KG</div><div className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider">REPS</div></div></div>
                                         {workoutData[selectedCell.dayKey]?.[selectedCell.exercise]?.[selectedCell.session]?.sets.map((set, index) => {
                                             return (
                                                 <div key={index}>
@@ -663,42 +478,31 @@
                                                 </div>
                                             );
                                         })}
-                                        <div className="mt-8 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
-                                            <h4 className="flex items-center gap-2 text-sm font-bold text-slate-300 mb-2"><Icons.Lightbulb className="w-4 h-4 text-emerald-400" />Tip!</h4>
-                                            <p className="text-xs text-slate-400 leading-relaxed">{EXERCISE_NOTES[selectedCell.exercise] || "Focus on form and controlled movement."}</p>
-                                        </div>
-                                        
-                                        <div className="mt-4">
-                                            <h4 className="flex items-center gap-2 text-sm font-bold text-slate-300 mb-2"><Icons.MessageSquare className="w-4 h-4 text-emerald-400" />Session Notes</h4>
-                                            <textarea 
-                                                value={workoutData[selectedCell.dayKey]?.[selectedCell.exercise]?.[selectedCell.session]?.comment || ''}
-                                                onChange={(e) => handleCommentUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, e.target.value)}
-                                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 placeholder:text-slate-600 transition-all resize-none h-24"
-                                                placeholder="How did it feel? Any pain? Next time increase weight?..."
-                                            ></textarea>
-                                        </div>
+                                        <div className="mt-8 p-4 rounded-xl bg-slate-800/50 border border-slate-700"><h4 className="flex items-center gap-2 text-sm font-bold text-slate-300 mb-2"><Icons.Lightbulb className="w-4 h-4 text-emerald-400" />Tip!</h4><p className="text-xs text-slate-400 leading-relaxed">{EXERCISE_NOTES[selectedCell.exercise] || "Focus on form and controlled movement."}</p></div>
+                                        <div className="mt-4"><h4 className="flex items-center gap-2 text-sm font-bold text-slate-300 mb-2"><Icons.MessageSquare className="w-4 h-4 text-emerald-400" />Session Notes</h4><textarea value={workoutData[selectedCell.dayKey]?.[selectedCell.exercise]?.[selectedCell.session]?.comment || ''} onChange={(e) => handleCommentUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 placeholder:text-slate-600 transition-all resize-none h-24" placeholder="How did it feel? Any pain? Next time increase weight?..."></textarea></div>
                                     </div>
                                 </div>
-                                <div className="p-4 border-t border-slate-800 bg-slate-900">
-                                    <button onClick={() => setSelectedCell(null)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                        <Icons.Check className="w-4 h-4" />
-                                        Done
-                                    </button>
-                                </div>
+                                <div className="p-4 border-t border-slate-800 bg-slate-900"><button onClick={() => setSelectedCell(null)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"><Icons.Check className="w-4 h-4" />Done</button></div>
                             </div>
                         </div>
                     )}
-
                     {showResetConfirm && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
                                 <h3 className="text-xl font-bold text-white mb-2">Reset Weekly Data?</h3>
                                 <p className="text-slate-400 mb-6">This will clear all your logged sets, reps, and weights for the current week. This action cannot be undone.</p>
-                                <div className="flex gap-3">
-                                    <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors">Cancel</button>
-                                    <button onClick={resetAllData} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors">Reset</button>
-                                </div>
+                                <div className="flex gap-3"><button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors">Cancel</button><button onClick={resetAllData} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors">Reset</button></div>
                             </div>
+                        </div>
+                    )}
+                    {showFirebaseAlert && (
+                        <div className="fixed top-0 left-0 right-0 p-4 bg-red-500 text-white text-center font-bold z-[60]">
+                            <div className="flex items-center justify-center gap-2">
+                                <Icons.Alert className="w-6 h-6" />
+                                <span>Firebase Setup Required</span>
+                            </div>
+                            <p className="text-xs font-normal mt-1 opacity-90">Cloud sync is disabled. Add keys to code to enable.</p>
+                            <button onClick={() => setShowFirebaseAlert(false)} className="absolute top-2 right-2 p-1 hover:bg-white/20 rounded"><Icons.X className="w-4 h-4" /></button>
                         </div>
                     )}
                 </div>
