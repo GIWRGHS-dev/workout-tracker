@@ -226,11 +226,16 @@
             "Dumbbell Calf Raise": "Hold dumbbells at sides. Raise heels as high as possible. Pause at the top."
         };
 
-        const generateSessionLabels = () => ['Session 1', 'Session 2'];
+        // UPDATED: Dynamic sessions based on program type
+        const generateSessionLabels = (programType) => {
+            if (programType === 'simple') return ['Session 1'];
+            return ['Session 1', 'Session 2'];
+        };
 
-        const generateInitialData = (split) => {
+        // UPDATED: generateInitialData accepts programType
+        const generateInitialData = (split, programType = 'ppl') => {
             const data = {};
-            const sessionLabels = generateSessionLabels();
+            const sessionLabels = generateSessionLabels(programType);
             const sourceSplit = split || SPLIT_PPL;
             
             Object.keys(sourceSplit).forEach(dayKey => {
@@ -318,7 +323,10 @@
             );
         };
 
-        const EditExercisesModal = ({ currentSplit, onClose, onSave, programType, onTypeChange }) => {
+        const EditExercisesModal = ({ currentSplit, initialType, onClose, onSave }) => {
+            // UPDATED: Manage local type state to avoid background flickering
+            const [localType, setLocalType] = useState(initialType);
+
             const [localSplitArr, setLocalSplitArr] = useState(() => {
                 return Object.keys(currentSplit).map(key => ({
                     key: key,
@@ -326,13 +334,14 @@
                 }));
             });
 
+            // Update local split array when type changes internally in modal
             useEffect(() => {
-                if (programType === 'ppl') {
+                if (localType === 'ppl') {
                     setLocalSplitArr(Object.keys(SPLIT_PPL).map(key => ({ key, exercises: SPLIT_PPL[key] })));
-                } else if (programType === 'simple') {
+                } else if (localType === 'simple') {
                     setLocalSplitArr(Object.keys(SPLIT_SIMPLE).map(key => ({ key, exercises: SPLIT_SIMPLE[key] })));
                 }
-            }, [programType]);
+            }, [localType]);
 
             const handleNameChange = (dayIndex, exIndex, newName) => {
                 const updated = [...localSplitArr];
@@ -360,7 +369,7 @@
 
             const handleReset = () => {
                 if (confirm("Reset current program to defaults?")) {
-                    const target = programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE;
+                    const target = localType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE;
                     setLocalSplitArr(Object.keys(target).map(key => ({ key, exercises: target[key] })));
                 }
             };
@@ -370,7 +379,7 @@
                 localSplitArr.forEach(item => {
                     finalObj[item.key] = item.exercises;
                 });
-                onSave(finalObj);
+                onSave(finalObj, localType); // Pass back the final type
             };
 
             return (
@@ -384,14 +393,14 @@
                             
                             <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
                                 <button 
-                                    onClick={() => onTypeChange('ppl')}
-                                    className={`flex-1 py-2 rounded-md transition-colors ${programType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => setLocalType('ppl')}
+                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Push / Pull / Legs
                                 </button>
                                 <button 
-                                    onClick={() => onTypeChange('simple')}
-                                    className={`flex-1 py-2 rounded-md transition-colors ${programType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    onClick={() => setLocalType('simple')}
+                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Weekly (Mon-Sun)
                                 </button>
@@ -404,7 +413,7 @@
                                 return (
                                     <div key={dayIdx}>
                                         <div className="flex items-center gap-2 mb-3">
-                                            {programType === 'simple' ? (
+                                            {localType === 'simple' ? (
                                                 <input 
                                                     type="text" 
                                                     value={dayObj.key}
@@ -480,7 +489,14 @@
                 return keys[0] || "Push";
             });
 
-            const [sessions] = useState(generateSessionLabels());
+            // UPDATED: Sessions state derived from programType
+            const [sessions, setSessions] = useState(() => generateSessionLabels(programType));
+
+            // UPDATED: Effect to update sessions when programType changes
+            useEffect(() => {
+                setSessions(generateSessionLabels(programType));
+            }, [programType]);
+
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [showEditModal, setShowEditModal] = useState(false);
             
@@ -492,7 +508,7 @@
             const [workoutData, setWorkoutData] = useState(() => { 
                 const saved = localStorage.getItem('workoutData_v9'); 
                 if (saved) return JSON.parse(saved);
-                return generateInitialData(workoutSplit);
+                return generateInitialData(workoutSplit, programType);
             });
             const [selectedCell, setSelectedCell] = useState(null);
             const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
@@ -555,8 +571,8 @@
                 // Fetch logs
                 const logs = await window.getLogsByDateRange(startStr, endStr);
                 
-                // Re-init data structure based on current split
-                const newData = generateInitialData(workoutSplit); 
+                // Re-init data structure based on current split and type
+                const newData = generateInitialData(workoutSplit, programType); 
 
                 if (logs && logs.length > 0) {
                     const groupedLogs = {};
@@ -589,16 +605,10 @@
                 setWorkoutData(newData);
             };
 
-            const handleTypeChange = (newType) => {
-                if (newType !== programType) {
-                    setProgramType(newType);
-                }
-            };
-
-            const handleSaveSplit = (newSplit) => {
-                // If keys changed significantly (e.g. Push -> Monday), simple migration isn't possible easily.
-                // We just reset the view to the new structure. History remains in Cloud.
-                const newWorkoutData = generateInitialData(newSplit);
+            // UPDATED: handleSaveSplit now accepts newType
+            const handleSaveSplit = (newSplit, newType) => {
+                setProgramType(newType);
+                const newWorkoutData = generateInitialData(newSplit, newType);
                 setWorkoutSplit(newSplit);
                 setWorkoutData(newWorkoutData);
                 
@@ -650,7 +660,8 @@
             // Dynamic current exercises based on split
             const currentExercises = workoutSplit[activeDay] || [];
             
-            const resetAllData = () => { setWorkoutData(generateInitialData(workoutSplit)); setShowResetConfirm(false); };
+            // UPDATED: Pass programType to generateInitialData
+            const resetAllData = () => { setWorkoutData(generateInitialData(workoutSplit, programType)); setShowResetConfirm(false); };
 
             const handleSaveSession = async (sessionName) => {
                 if (!window.firebaseConfigured) {
@@ -725,25 +736,27 @@
 
                 if (selectedHistoryExercise) {
                     return (
-                        <div className="flex flex-col h-full animate-fade-in">
-                            <div className="flex items-center gap-2 mb-4">
-                                <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
-                                <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
-                            </div>
-                            <div className="flex-1 overflow-y-auto space-y-6">
-                                <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
-                                    {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
+                        <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
+                            <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                                <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md p-4 items-center gap-2">
+                                    <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
+                                    <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
                                 </div>
-                                <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
-                                    <div className="space-y-2">
-                                        <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
-                                        {historyData.length > 0 ? historyData.map((row, idx) => (
-                                            <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
-                                                <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
-                                            </div>
-                                        )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
+                                <div className="flex-1 overflow-y-auto space-y-6 p-4">
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
+                                        {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
+                                    </div>
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
+                                            {historyData.length > 0 ? historyData.map((row, idx) => (
+                                                <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
+                                                    <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
+                                                </div>
+                                            )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -751,12 +764,14 @@
                     );
                 }
                 return (
-                    <div className="flex flex-col h-full animate-fade-in">
-                        <div className="text-center mb-6 py-4"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pb-4 custom-scrollbar">
-                            {allExercises.map(ex => (
-                                <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
-                            ))}
+                     <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
+                         <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                            <div className="text-center p-6 border-b border-slate-800/50 bg-slate-900/50"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-4 custom-scrollbar">
+                                {allExercises.map(ex => (
+                                    <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 );
@@ -786,7 +801,7 @@
             };
 
             return (
-                <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden">
+                <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden bg-slate-950">
                     <nav className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 h-12 flex items-center justify-between shadow-lg flex-none">
                         <div className="flex items-center gap-2"><div className="p-1.5 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-5 h-5 text-emerald-400" /></div><div><h1 className="font-bold text-sm text-white leading-tight">Weekly Split</h1></div></div>
                          
@@ -819,14 +834,15 @@
                         </div>
                     </div>
 
-                    <main className="flex-1 overflow-hidden flex flex-col relative">
+                    <main className="flex-1 overflow-hidden flex flex-col relative bg-slate-950">
                         {activeDay === "Rest" ? (
                             <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-0 animate-fade-in"><div className="p-4 bg-blue-500/10 rounded-full mb-4 ring-4 ring-blue-500/20"><Icons.Coffee className="w-12 h-12 text-blue-400" /></div><h2 className="text-2xl font-bold text-white mb-2">Rest Day</h2><p className="text-slate-400 max-w-sm text-sm leading-relaxed mb-6">Recover, eat well, sleep tight. Your muscles are growing right now.</p><button onClick={() => setShowResetConfirm(true)} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg flex items-center gap-2 transition-all font-bold text-xs active:scale-95"><Icons.Refresh className="w-4 h-4" />Reset Week</button></div>
                         ) : activeDay === "Progress" ? ( renderProgressTab() ) : (
-                            <>
-                                <div className="flex-1 flex flex-col bg-slate-900/30 animate-fade-in overflow-hidden">
+                            /* TABLE VIEW START */
+                            <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
+                                <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
                                     {/* TABLE HEADER */}
-                                    <div className="flex bg-slate-900/95 glass border-b border-slate-800 sticky top-0 z-10 shadow-sm">
+                                    <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
                                         <div className="flex-none w-40 md:w-64 p-3 border-r border-slate-800 z-20 flex items-center justify-between">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
                                             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest hidden md:inline">{currentExercises.length} Total</span>
@@ -841,7 +857,7 @@
                                     </div>
 
                                     {/* TABLE BODY */}
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar pb-16">
                                         {currentExercises.map((exercise, idx) => (
                                             <div key={exercise} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
                                                 <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none group-hover:bg-slate-900/95 md:group-hover:bg-transparent transition-colors">
@@ -882,7 +898,7 @@
                                     </div>
                                     
                                     {/* FOOTER ACTIONS */}
-                                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur border-t border-slate-800 flex items-center justify-between p-2 z-30">
+                                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between p-3 z-30 backdrop-blur-md">
                                          <div className="flex gap-2 w-full justify-around">
                                             {sessions.map((session) => (
                                                 <button key={session} onClick={() => handleSaveSession(session)} className="flex-1 max-w-[200px] py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
@@ -892,7 +908,8 @@
                                          </div>
                                     </div>
                                 </div>
-                            </>
+                            </div>
+                            /* TABLE VIEW END */
                         )}
                     </main>
 
@@ -979,7 +996,7 @@
                         </div>
                     )}
 
-                    {showEditModal && <EditExercisesModal currentSplit={workoutSplit} onClose={() => setShowEditModal(false)} onSave={handleSaveSplit} programType={programType} onTypeChange={handleTypeChange} />}
+                    {showEditModal && <EditExercisesModal currentSplit={workoutSplit} initialType={programType} onClose={() => setShowEditModal(false)} onSave={handleSaveSplit} />}
                     
                     {showFirebaseAlert && (
                         <div className="fixed top-0 left-0 right-0 p-2 bg-red-500/90 text-white text-center font-bold z-[60] backdrop-blur-sm">
