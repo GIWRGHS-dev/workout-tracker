@@ -447,8 +447,9 @@
                     window.auth.onAuthStateChanged((u) => {
                         setUser(u);
                         if (u) {
-                            // If we just logged in, trigger a data sync
-                            fetchWeeklyData(currentWeekStart);
+                            // FIX: Pass 'u' (the user) directly to the fetch function
+                            // This ensures it loads data immediately without waiting for state updates
+                            fetchWeeklyData(currentWeekStart, u);
                         } else {
                             // If we logged out, clear the data
                             setWorkoutData(generateInitialData(workoutSplit, programType));
@@ -556,16 +557,20 @@
                 fetchWeeklyData(newStart);
             };
 
-            const fetchWeeklyData = async (startDate) => {
+// FIX: Accept 'currentUser' as an argument to handle immediate logins
+            const fetchWeeklyData = async (startDate, currentUser = user) => {
                 const startStr = formatDateISO(startDate);
                 
                 // 1. Start with a BLANK template
                 let newData = generateInitialData(workoutSplit, programType); 
 
                 // 2. Try to load LOCAL data for THIS SPECIFIC USER
-                if (user && user.uid) {
+                // We use 'currentUser' (passed in) OR 'user' (from state)
+                const activeUser = currentUser || user;
+
+                if (activeUser && activeUser.uid) {
                     // FIX: Key now includes the user ID so accounts don't mix
-                    const localKey = `workoutData_${user.uid}_${startStr}`;
+                    const localKey = `workoutData_${activeUser.uid}_${startStr}`;
                     const localSaved = localStorage.getItem(localKey);
                     
                     if (localSaved) {
@@ -578,11 +583,12 @@
                 }
 
                 // 3. If connected, OVERLAY cloud data on top
-                if (window.getLogsByDateRange && window.firebaseConfigured && user) {
+                if (window.getLogsByDateRange && window.firebaseConfigured && activeUser) {
                     const endDate = new Date(startDate);
                     endDate.setDate(endDate.getDate() + 6);
                     const endStr = formatDateISO(endDate);
 
+                    // Note: window.getLogsByDateRange internally uses auth.currentUser, which is always up to date
                     const logs = await window.getLogsByDateRange(startStr, endStr);
 
                     if (logs && logs.length > 0) {
