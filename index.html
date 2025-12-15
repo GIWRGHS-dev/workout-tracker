@@ -448,7 +448,25 @@
             const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
             
             const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
-
+            // --- NEW: AUTO-SYNC ON LOAD ---
+            useEffect(() => {
+                const initialSync = async () => {
+                    // 1. Wait briefly for Firebase to initialize (fixes race condition)
+                    let attempts = 0;
+                    while (!window.firebaseConfigured && attempts < 10) {
+                        await new Promise(r => setTimeout(r, 200));
+                        attempts++;
+                    }
+                    
+                    // 2. If connected, fetch the latest data for this week
+                    if (window.firebaseConfigured) {
+                        console.log("Firebase connected. Auto-syncing...");
+                        await fetchWeeklyData(currentWeekStart);
+                    }
+                };
+                initialSync();
+            }, []); // Empty brackets [] mean this runs only once when App opens
+            // -----------------------------
             useEffect(() => { localStorage.setItem('workoutData_v9', JSON.stringify(workoutData)); }, [workoutData]);
             useEffect(() => { localStorage.setItem('workoutSplit_v1', JSON.stringify(workoutSplit)); }, [workoutSplit]);
             useEffect(() => { localStorage.setItem('programType_v1', programType); }, [programType]);
@@ -612,6 +630,15 @@
                 });
             };
 
+            // --- TOAST NOTIFICATION STATE ---
+            const [toast, setToast] = useState(null);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                // Auto-hide after 3 seconds
+                setTimeout(() => setToast(null), 3000);
+            };
+            
             const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
                 setWorkoutData(prev => {
                     const newData = JSON.parse(JSON.stringify(prev));
