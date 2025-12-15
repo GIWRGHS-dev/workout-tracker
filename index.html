@@ -1,17 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FocusFit Pro</title>
+    <title>Workout Tracker</title>
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- Dynamic Manifest and Icon placeholders -->
-    <link id="manifest-link" rel="manifest" />
-    <link id="icon-link" rel="icon" type="image/png" />
-    <link id="apple-icon-link" rel="apple-touch-icon" />
+    <!-- UPDATED MANIFEST: Sets orientation to landscape -->
+    <link rel="manifest" href='data:application/manifest+json;base64,eyJuYW1lIjoiV29ya291dCBUcmFja2VyIiwic2hvcnRfbmFtZSI6IldvcmtvdXQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJvcmllbnRhdGlvbiI6ImxhbmRzY2FwZSIsImJhY2tncm91bmRfY29sb3IiOiIjMDIwNjE3IiwidGhlbWVfY29sb3IiOiIjMGYxNzJhIiwiaWNvbnMiOlt7InNyYyI6Imh0dHBzOi8vY2RuLWljb25zLXBuZy5mbGF0aWNvbi5jb20vNTEyLzI1NTQvMjU1NDAzNy5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==' />
 
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -23,48 +22,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // ============================================================
-        // 🔴 YOUR APP CONFIGURATION 🔴
-        // Change the iconURL to whatever image you want for your phone icon!
-        // ============================================================
-        const APP_CONFIG = {
-            name: "FocusFit",
-            shortName: "FocusFit",
-            // This is the icon that appears on your home screen:
-            iconUrl: "data:image/jpeg;base64,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", 
-            themeColor: "#0f172a",
-            backgroundColor: "#020617"
-        };//"C:\Users\georg\Downloads\Gym App\download (1).jpg"
-
-        // --- DYNAMIC MANIFEST GENERATION (Do not edit unless you know what you are doing) ---
-        const manifest = {
-            name: APP_CONFIG.name,
-            short_name: APP_CONFIG.shortName,
-            start_url: ".",
-            display: "standalone",
-            orientation: "landscape",
-            background_color: APP_CONFIG.backgroundColor,
-            theme_color: APP_CONFIG.themeColor,
-            icons: [
-                {
-                    src: APP_CONFIG.iconUrl,
-                    sizes: "512x512",
-                    type: "image/png"
-                }
-            ]
-        };
-
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        
-        document.getElementById('manifest-link').setAttribute('href', manifestURL);
-        document.getElementById('icon-link').setAttribute('href', APP_CONFIG.iconUrl);
-        document.getElementById('apple-icon-link').setAttribute('href', APP_CONFIG.iconUrl);
-        document.title = APP_CONFIG.name;
-        // ============================================================
-
 
         // ============================================================
         // 🔴 YOUR FIREBASE KEYS 🔴
@@ -156,69 +113,42 @@
                 extend: {
                     colors: {
                         slate: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
-                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' },
-                        dark: { 900: '#050508', 800: '#0a0a12' } // Custom ultra-dark
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
                     },
                     animation: { 
-                        'fade-in': 'fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'slide-up': 'slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                        'fade-in': 'fade-in 0.3s ease-out forwards',
+                        'slide-up': 'slide-up 0.3s ease-out forwards',
+                        'slide-left': 'slide-left 0.3s ease-out forwards'
                     },
                     keyframes: { 
-                        'fade-in': { 'from': { opacity: '0', transform: 'scale(0.98)' }, 'to': { opacity: '1', transform: 'scale(1)' } },
-                        'slide-up': { 'from': { transform: 'translateY(100%)' }, 'to': { transform: 'translateY(0)' } }
+                        'fade-in': { 'from': { opacity: '0', transform: 'scale(0.99)' }, 'to': { opacity: '1', transform: 'scale(1)' } },
+                        'slide-up': { 'from': { transform: 'translateY(100%)' }, 'to': { transform: 'translateY(0)' } },
+                        'slide-left': { 'from': { transform: 'translateX(100%)' }, 'to': { transform: 'translateX(0)' } }
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
                         mono: ['JetBrains Mono', 'ui-monospace', 'monospace']
-                    },
-                    boxShadow: {
-                        'glow': '0 0 15px -3px rgba(16, 185, 129, 0.3)',
-                        'glow-sm': '0 0 8px -2px rgba(16, 185, 129, 0.4)',
-                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
                     }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
         
-        body { 
-            background-color: #02040a; 
-            color: #e2e8f0; 
-            -webkit-tap-highlight-color: transparent; 
-            /* Subtle Mesh Gradient Background */
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 50%);
-            background-attachment: fixed;
-        }
+        body { background-color: #020617; color: #e2e8f0; -webkit-tap-highlight-color: transparent; }
         
-        /* Modern Glassmorphism */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
-
-        .glass-header {
-            background: rgba(2, 6, 23, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* Neon Glow Utility */
-        .text-glow { text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
     </style>
 </head>
 <body>
@@ -261,7 +191,8 @@
         const SPLIT_PPL = {
             "Push": ["Flat Dumbbell Bench Press", "Incline Dumbbell Press", "Dumbbell Overhead Press", "Dumbbell Lateral Raises", "Overhead Tricep Extension", "Double Tricep Kickbacks"],
             "Pull": ["One-Arm Dumbbell Row", "Dumbbell Pullover", "Chest-Supported Row", "Rear Delt Fly", "Dumbbell Bicep Curl", "Hammer Curl"],
-            "Legs": ["Goblet Squat", "Bulgarian Split Squat", "Dumbbell RDL (Romanian Deadlift)", "Walking Lunges", "Dumbbell Calf Raise"]
+            "Legs": ["Goblet Squat", "Bulgarian Split Squat", "Dumbbell RDL (Romanian Deadlift)", "Walking Lunges", "Dumbbell Calf Raise"],
+            "Rest": [] 
         };
 
         const SPLIT_SIMPLE = {
@@ -271,7 +202,8 @@
             "Thursday": [],
             "Friday": ["Goblet Squat", "Dumbbell Calf Raise"],
             "Saturday": [],
-            "Sunday": []
+            "Sunday": [],
+            "Rest": []
         };
 
         // A map to get tooltips for common exercises
@@ -308,6 +240,7 @@
             const sourceSplit = split || SPLIT_PPL;
             
             Object.keys(sourceSplit).forEach(dayKey => {
+                if (dayKey === "Rest") return;
                 data[dayKey] = {};
                 sourceSplit[dayKey].forEach(ex => {
                     data[dayKey][ex] = {};
@@ -373,39 +306,41 @@
             const pointsWorst = chartData.map((d, i) => `${getX(i)},${getY(d.worst.weight)}`).join(' ');
 
             return (
-                <div className="flex flex-col items-center justify-center p-4 bg-slate-900/50 rounded-2xl border border-white/5 shadow-inner w-full">
+                <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-inner w-full">
                      <div className="w-full flex justify-between text-xs text-slate-500 mb-2 px-2"><span>Start</span><span>Max: {maxVal} kg</span></div>
                      <div className="w-full flex justify-center gap-4 mb-2 text-[10px]">
                         <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span><span className="text-emerald-400">Best Set</span></div>
                         <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span><span className="text-red-400">Worst Set</span></div>
                      </div>
                      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-                        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#334155" strokeWidth="2" strokeDasharray="4" />
+                        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#334155" strokeWidth="2" />
                         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#334155" strokeWidth="2" />
                         <polyline points={pointsWorst} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50" />
                         <polyline points={pointsBest} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
                         {chartData.map((d, i) => { const x = getX(i); const y = getY(d.worst.weight); return (<g key={`worst-${i}`} className="group cursor-pointer"><circle cx={x} cy={y} r="4" fill="#0f172a" stroke="#ef4444" strokeWidth="2" className="transition-all group-hover:r-6 group-hover:fill-red-500/20" /><title>{`WORST SET\nDate: ${d.date}\nWeight: ${d.worst.weight} kg\nReps: ${d.worst.reps}`}</title></g>)})}
-                        {chartData.map((d, i) => { const x = getX(i); const y = getY(d.best.weight); return (<g key={`best-${i}`} className="group cursor-pointer"><circle cx={x} cy={y} r="6" fill="#0f172a" stroke="#10b981" strokeWidth="2" className="transition-all group-hover:r-9 group-hover:fill-emerald-500/30" /><title>{`BEST SET\nDate: ${d.date}\nWeight: ${d.best.weight} kg\nReps: ${d.best.reps}`}</title><text x={x} y={y - 15} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" className="opacity-0 group-hover:opacity-100 transition-opacity select-none bg-black/80 px-2 py-1 rounded pointer-events-none">{d.best.weight}kg</text><text x={x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="9" className="pointer-events-none font-mono">{d.date.slice(0,5)}</text></g>)})}
+                        {chartData.map((d, i) => { const x = getX(i); const y = getY(d.best.weight); return (<g key={`best-${i}`} className="group cursor-pointer"><circle cx={x} cy={y} r="5" fill="#0f172a" stroke="#10b981" strokeWidth="2" className="transition-all group-hover:r-7 group-hover:fill-emerald-500/20" /><title>{`BEST SET\nDate: ${d.date}\nWeight: ${d.best.weight} kg\nReps: ${d.best.reps}`}</title><text x={x} y={y - 12} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" className="opacity-0 group-hover:opacity-100 transition-opacity select-none bg-black pointer-events-none">{d.best.weight}kg</text><text x={x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="8" className="pointer-events-none">{d.date.slice(5)}</text></g>)})}
                     </svg>
                 </div>
             );
         };
 
-        const SettingsModal = ({ initialType, onClose, onSave, onClearData }) => {
+        const SettingsModal = ({ initialType, onClose, onSave }) => {
             const [localType, setLocalType] = useState(initialType);
 
-            const handleResetDefaults = () => {
-                if (confirm("Reset exercise names to default list?")) {
+            const handleReset = () => {
+                if (confirm("Reset current program to defaults?")) {
                     const target = localType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE;
                     onSave(target, localType);
                 }
             };
 
-            const handleClearWeeklyData = () => {
-                onClearData();
-            };
-
             const handleSaveInternal = () => {
+                // If switching types, we load default split for that type
+                // If staying on same type, we just pass null for split (implies keep current)
+                // But simplified logic: Just reload default split for the selected type to be safe?
+                // Or try to keep currentSplit if type matches?
+                // For simplicity: If type changed, load default. If type same, do nothing.
+                
                 let newSplit = null;
                 if (localType === 'ppl') newSplit = SPLIT_PPL;
                 else newSplit = SPLIT_SIMPLE;
@@ -414,44 +349,41 @@
             };
 
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-                    <div className="glass-panel rounded-2xl w-full max-w-sm shadow-2xl flex flex-col border border-white/10">
-                        <div className="p-5 border-b border-white/10 bg-white/5 flex justify-between items-center rounded-t-2xl">
-                            <h2 className="text-lg font-bold text-white tracking-wide">Program Settings</h2>
-                            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors hover:bg-white/10 rounded-full"><Icons.X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
+                        <div className="p-4 border-b border-slate-700 bg-slate-900 sticky top-0 rounded-t-2xl z-10 flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-white">Program Settings</h2>
+                            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><Icons.X className="w-6 h-6" /></button>
                         </div>
                         
                         <div className="p-6 space-y-6">
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Program Type</label>
-                                <div className="bg-slate-950/50 p-1.5 rounded-xl flex text-sm font-medium border border-white/5">
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Program Type</label>
+                                <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
                                     <button 
                                         onClick={() => setLocalType('ppl')}
-                                        className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${localType === 'ppl' ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                     >
-                                        PPL Split
+                                        PPL
                                     </button>
                                     <button 
                                         onClick={() => setLocalType('simple')}
-                                        className={`flex-1 py-2.5 rounded-lg transition-all duration-300 ${localType === 'simple' ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                     >
-                                        Weekly Split
+                                        Weekly
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">Switching programs will load the default exercises for that split.</p>
+                                <p className="text-xs text-slate-500 mt-2">Switching programs will load the default exercises for that split.</p>
                             </div>
 
-                            <div className="pt-4 border-t border-white/10 space-y-3">
-                                <button onClick={handleClearWeeklyData} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-all border border-red-500/20 active:scale-95">
-                                    <Icons.Trash className="w-4 h-4" /> Clear Weekly Data
-                                </button>
-                                <button onClick={handleResetDefaults} className="w-full py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all border border-white/5 active:scale-95">
-                                    <Icons.Refresh className="w-4 h-4" /> Reset Default List
+                            <div className="pt-4 border-t border-slate-800">
+                                <button onClick={handleReset} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
+                                    <Icons.Refresh className="w-4 h-4" /> Reset to Default
                                 </button>
                             </div>
                         </div>
-                        <div className="p-5 border-t border-white/10 bg-white/5 rounded-b-2xl">
-                            <button onClick={handleSaveInternal} className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 transform"><Icons.Save className="w-4 h-4" /> Save Changes</button>
+                        <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl">
+                            <button onClick={handleSaveInternal} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2"><Icons.Save className="w-4 h-4" /> Save Changes</button>
                         </div>
                     </div>
                 </div>
@@ -459,37 +391,45 @@
         };
 
         const App = () => {
+            // STATE: Program Type ('ppl' or 'simple')
             const [programType, setProgramType] = useState(() => localStorage.getItem('programType_v1') || 'ppl');
+
+            // STATE: Workout Split (Customizable)
             const [workoutSplit, setWorkoutSplit] = useState(() => {
                 const saved = localStorage.getItem('workoutSplit_v1');
                 return saved ? JSON.parse(saved) : SPLIT_PPL;
             });
 
+            // Effect to manage initial split on first load or type switch fallback
             useEffect(() => {
                 if (!workoutSplit) {
                     setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
                 }
             }, []);
 
+            // Set active day based on split keys
             const [activeDay, setActiveDay] = useState(() => {
-                const keys = Object.keys(workoutSplit);
+                const keys = Object.keys(workoutSplit).filter(k => k !== 'Rest');
                 return keys[0] || "Push";
             });
 
+            // UPDATED: Sessions state derived from programType
             const [sessions, setSessions] = useState(() => generateSessionLabels(programType));
 
+            // UPDATED: Effect to update sessions when programType changes
             useEffect(() => {
                 setSessions(generateSessionLabels(programType));
             }, [programType]);
 
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
-            const [isEditingExercises, setIsEditingExercises] = useState(false); 
+            const [isEditingExercises, setIsEditingExercises] = useState(false); // NEW STATE
             
             const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
             const [historyData, setHistoryData] = useState([]);
             const [isLoadingHistory, setIsLoadingHistory] = useState(false);
             
+            // NOTE: Initializing workoutData based on current workoutSplit
             const [workoutData, setWorkoutData] = useState(() => { 
                 const saved = localStorage.getItem('workoutData_v9'); 
                 if (saved) return JSON.parse(saved);
@@ -497,7 +437,10 @@
             });
             const [selectedCell, setSelectedCell] = useState(null);
             const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
+            
+            // NEW STATE: UNLOCK EDIT
             const [isUnlocked, setIsUnlocked] = useState(false);
+
             const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
 
             // Persist Data
@@ -596,28 +539,32 @@
                     setWorkoutData(newWorkoutData);
                     
                     // Update active day to first key
-                    const keys = Object.keys(newSplit);
+                    const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
                     if (keys.length > 0) setActiveDay(keys[0]);
                 }
                 
                 setShowSettingsModal(false);
             };
 
+            // NEW: EXERCISE MANAGEMENT FUNCTIONS
             const handleExerciseRename = (day, idx, newName) => {
                 const oldName = workoutSplit[day][idx];
                 if (oldName === newName) return;
 
+                // 1. Update Split List
                 const newSplit = { ...workoutSplit };
                 newSplit[day] = [...newSplit[day]];
                 newSplit[day][idx] = newName;
                 setWorkoutSplit(newSplit);
 
+                // 2. Migrate Data (Preserve logs)
                 setWorkoutData(prev => {
                     const newData = JSON.parse(JSON.stringify(prev));
                     if (newData[day] && newData[day][oldName]) {
                         newData[day][newName] = newData[day][oldName];
                         delete newData[day][oldName];
                     } else {
+                        // If no data existed for old name, init new one
                         if (!newData[day]) newData[day] = {};
                         newData[day][newName] = {};
                         sessions.forEach(label => {
@@ -638,6 +585,7 @@
                 newSplit[day] = [...newSplit[day], newName];
                 setWorkoutSplit(newSplit);
                 
+                // Init data for new exercise
                 setWorkoutData(prev => {
                     const newData = JSON.parse(JSON.stringify(prev));
                     if (!newData[day]) newData[day] = {};
@@ -661,6 +609,7 @@
                 newSplit[day] = newSplit[day].filter((_, i) => i !== idx);
                 setWorkoutSplit(newSplit);
                 
+                // Cleanup data
                 setWorkoutData(prev => {
                     const newData = JSON.parse(JSON.stringify(prev));
                     if (newData[day] && newData[day][exerciseName]) {
@@ -681,6 +630,8 @@
                     const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
                     
                     sessionData.sets[setIndex][field] = value;
+                    
+                    // Update completion status
                     sessionData.completed = sessionData.sets.some(s => s.reps !== '' || s.weight !== '');
                     
                     newData[dayKey][exercise][session] = sessionData;
@@ -707,13 +658,11 @@
                 return sets.filter(set => set.weight !== '' || set.reps !== '');
             };
 
+            // Dynamic current exercises based on split
             const currentExercises = workoutSplit[activeDay] || [];
             
-            const resetAllData = () => { 
-                setWorkoutData(generateInitialData(workoutSplit, programType)); 
-                setShowResetConfirm(false); 
-                setShowSettingsModal(false);
-            };
+            // UPDATED: Pass programType to generateInitialData
+            const resetAllData = () => { setWorkoutData(generateInitialData(workoutSplit, programType)); setShowResetConfirm(false); };
 
             const handleSaveSession = async (sessionName) => {
                 if (!window.firebaseConfigured) {
@@ -729,11 +678,15 @@
 
                 const exercises = workoutSplit[activeDay] || [];
                 let processedCount = 0;
+                
+                // CREATE DEEP COPY FOR ID UPDATES
                 const newWorkoutData = JSON.parse(JSON.stringify(workoutData));
 
                 for (const exercise of exercises) {
                     const sessionData = newWorkoutData[activeDay]?.[exercise]?.[sessionName];
                     if (sessionData && sessionData.sets) {
+                        const validSets = sessionData.sets.filter(s => s.weight && s.reps);
+                        
                         for (let i = 0; i < sessionData.sets.length; i++) {
                             const s = sessionData.sets[i];
                             if (!s.weight || !s.reps) continue;
@@ -769,13 +722,13 @@
                 if (processedCount === 0) { 
                     alert("No data found to save!"); 
                 } else {
-                    // Using a custom alert for aesthetics would be better, but native is fine for now
                     alert(`Successfully saved/updated ${processedCount} sets!`);
                     setWorkoutData(newWorkoutData);
                 }
             };
 
             const renderProgressTab = () => {
+                // Flatten all days
                 let allExercises = [];
                 Object.keys(workoutSplit).forEach(day => {
                     if (day !== 'Rest') allExercises = [...allExercises, ...workoutSplit[day]];
@@ -785,25 +738,25 @@
                 if (selectedHistoryExercise) {
                     return (
                         <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
-                            <div className="w-full max-w-5xl h-full flex flex-col glass-panel rounded-3xl overflow-hidden relative animate-fade-in shadow-2xl">
-                                <div className="flex glass-header sticky top-0 z-10 p-4 items-center gap-4">
-                                    <button onClick={() => setSelectedHistoryExercise(null)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-300 hover:text-white transition-all backdrop-blur-md border border-white/5"><Icons.ChevronLeft className="w-5 h-5" /></button>
-                                    <h2 className="text-xl font-bold text-white line-clamp-1 tracking-tight text-glow">{selectedHistoryExercise}</h2>
+                            <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                                <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md p-4 items-center gap-2">
+                                    <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
+                                    <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
                                 </div>
-                                <div className="flex-1 overflow-y-auto space-y-6 p-6 custom-scrollbar">
-                                    <div className="p-6 bg-slate-900/40 rounded-2xl border border-white/5 shadow-inner">
-                                        <h3 className="text-xs font-bold text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-widest"><Icons.TrendingUp className="w-4 h-4 text-emerald-400"/> Strength Progression</h3>
-                                        {isLoadingHistory ? <div className="text-center py-12 text-slate-500 animate-pulse">Syncing data...</div> : <ProgressChart historyData={historyData} />}
+                                <div className="flex-1 overflow-y-auto space-y-6 p-4">
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
+                                        {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
                                     </div>
-                                    <div className="p-6 bg-slate-900/40 rounded-2xl border border-white/5">
-                                        <h3 className="text-xs font-bold text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-widest"><Icons.List className="w-4 h-4 text-emerald-400"/> History Log</h3>
-                                        <div className="space-y-3">
-                                            <div className="grid grid-cols-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
                                             {historyData.length > 0 ? historyData.map((row, idx) => (
-                                                <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 hover:border-emerald-500/30 transition-all cursor-default">
-                                                    <span className="text-slate-400 font-mono">{row.Date}</span><span className="text-center text-slate-500 font-bold">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono text-slate-300">{row.Reps}</span>
+                                                <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
+                                                    <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
                                                 </div>
-                                            )) : <div className="text-center text-slate-500 py-8 text-sm">No recorded sets yet.</div>}
+                                            )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -813,14 +766,11 @@
                 }
                 return (
                      <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
-                         <div className="w-full max-w-5xl h-full flex flex-col glass-panel rounded-3xl overflow-hidden relative animate-fade-in shadow-2xl">
-                            <div className="text-center p-8 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent"><h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to analyze your performance over time.</p></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto p-6 custom-scrollbar">
+                         <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                            <div className="text-center p-6 border-b border-slate-800/50 bg-slate-900/50"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-4 custom-scrollbar">
                                 {allExercises.map(ex => (
-                                    <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/50 rounded-2xl text-left transition-all hover:shadow-glow-sm hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between">
-                                        <span className="font-bold text-slate-200 group-hover:text-white transition-colors">{ex}</span>
-                                        <Icons.ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100" />
-                                    </button>
+                                    <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
                                 ))}
                             </div>
                         </div>
@@ -828,10 +778,21 @@
                 );
             };
             
+            // --- DATE HELPER FOR TABS ---
             const getTabDate = (dayName) => {
+                // If using PPL, return nothing for now as logic is arbitrary
                 if (programType === 'ppl') return null;
-                const days = Object.keys(workoutSplit);
+
+                // Simple map for Weekly program
+                const dayMap = {
+                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, 
+                    "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6
+                };
+                
+                // Better approach: Use index from workoutSplit keys
+                const days = Object.keys(workoutSplit).filter(k => k !== 'Rest');
                 const idx = days.indexOf(dayName);
+                
                 if (idx !== -1) {
                     const date = new Date(currentWeekStart);
                     date.setDate(date.getDate() + idx);
@@ -841,115 +802,118 @@
             };
 
             return (
-                <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden relative">
-                    <nav className="sticky top-0 z-30 glass-header px-6 h-16 flex items-center justify-between shadow-lg flex-none">
-                        <div className="flex items-center gap-3"><div className="p-2 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl border border-emerald-500/20 shadow-glow-sm"><Icons.Activity className="w-5 h-5 text-emerald-400" /></div><div><h1 className="font-bold text-lg text-white leading-none tracking-tight">FocusFit</h1><span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pro Tracker</span></div></div>
+                <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden bg-slate-950">
+                    <nav className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 h-12 flex items-center justify-between shadow-lg flex-none">
+                        <div className="flex items-center gap-2"><div className="p-1.5 bg-emerald-500/10 rounded-lg"><Icons.Activity className="w-5 h-5 text-emerald-400" /></div><div><h1 className="font-bold text-sm text-white leading-tight">Weekly Split</h1></div></div>
                          
-                         <div className="flex items-center gap-3">
-                             <div className="flex items-center bg-slate-900/50 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
-                                 <button onClick={() => changeWeek(-1)} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all active:scale-90"><Icons.ChevronLeft className="w-4 h-4" /></button>
-                                 <span className="px-3 text-xs font-mono font-bold text-emerald-400 select-none whitespace-nowrap min-w-[80px] text-center">{weekRangeString}</span>
-                                 <button onClick={() => changeWeek(1)} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all active:scale-90"><Icons.ChevronRight className="w-4 h-4" /></button>
+                         <div className="flex items-center gap-2">
+                             <div className="flex items-center bg-slate-800/80 border border-slate-700 rounded-lg p-0.5">
+                                 <button onClick={() => changeWeek(-1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronLeft className="w-3.5 h-3.5" /></button>
+                                 <span className="px-2 text-[10px] font-mono font-bold text-emerald-400 select-none whitespace-nowrap min-w-[70px] text-center">{weekRangeString}</span>
+                                 <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
-                             <button onClick={() => setShowSettingsModal(true)} className="p-2.5 bg-slate-900/50 hover:bg-slate-800 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all hover:border-white/20 active:scale-95"><Icons.Settings className="w-5 h-5" /></button>
+                             <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
                          </div>
                     </nav>
 
-                    <div className="sticky top-16 z-20 glass-header border-t-0 border-b border-white/5 overflow-x-auto no-scrollbar flex-none h-14 flex items-center shadow-lg">
-                        <div className="flex px-4 min-w-max">
+                    <div className="sticky top-12 z-20 bg-slate-950 border-b border-slate-800 overflow-x-auto no-scrollbar flex-none h-12 flex items-center">
+                        <div className="flex px-2 min-w-max">
                             {Object.keys(workoutSplit).map((day) => { 
+                                const isRest = day === "Rest"; 
                                 const isActive = activeDay === day; 
                                 const dateStr = getTabDate(day);
                                 return (
-                                    <button key={day} onClick={() => { setActiveDay(day); setSelectedHistoryExercise(null); }} className={`relative px-5 py-2 mx-1.5 rounded-full text-xs font-bold transition-all duration-300 whitespace-nowrap flex flex-col items-center justify-center border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50 shadow-glow-sm' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-200 hover:border-white/10'}`}>
-                                        <div className="flex items-center gap-2">
+                                    <button key={day} onClick={() => { setActiveDay(day); setSelectedHistoryExercise(null); }} className={`relative px-3 py-1.5 mx-1 rounded-md text-xs font-bold transition-all duration-200 whitespace-nowrap flex flex-col items-center justify-center ${isActive ? (isRest ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50' : 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50') : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>
+                                        <div className="flex items-center gap-1.5">
                                             {day}
-                                            {dateStr && <span className={`text-[10px] font-mono opacity-80 ${isActive ? 'text-emerald-200' : 'text-slate-500'}`}>{dateStr}</span>}
+                                            {dateStr && <span className={`text-[9px] font-mono opacity-80 ${isActive ? 'text-emerald-300' : 'text-slate-500'}`}>{dateStr}</span>}
                                         </div>
                                     </button>
                                 ); 
                             })}
-                             <button onClick={() => setActiveDay('Progress')} className={`relative px-5 py-2 mx-1.5 rounded-full text-xs font-bold transition-all duration-300 whitespace-nowrap border ${activeDay === 'Progress' ? 'bg-purple-500/10 text-purple-400 border-purple-500/50 shadow-[0_0_10px_-2px_rgba(168,85,247,0.3)]' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-200 hover:border-white/10'}`}>Progress</button>
+                             <button onClick={() => setActiveDay('Progress')} className={`relative px-3 py-1.5 mx-1 rounded-md text-xs font-bold transition-all duration-200 whitespace-nowrap ${activeDay === 'Progress' ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'}`}>Progress</button>
                         </div>
                     </div>
 
-                    <main className="flex-1 overflow-hidden flex flex-col relative">
-                        {activeDay === "Progress" ? ( renderProgressTab() ) : (
+                    <main className="flex-1 overflow-hidden flex flex-col relative bg-slate-950">
+                        {activeDay === "Rest" ? (
+                            <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-0 animate-fade-in"><div className="p-4 bg-blue-500/10 rounded-full mb-4 ring-4 ring-blue-500/20"><Icons.Coffee className="w-12 h-12 text-blue-400" /></div><h2 className="text-2xl font-bold text-white mb-2">Rest Day</h2><p className="text-slate-400 max-w-sm text-sm leading-relaxed mb-6">Recover, eat well, sleep tight. Your muscles are growing right now.</p><button onClick={() => setShowResetConfirm(true)} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg flex items-center gap-2 transition-all font-bold text-xs active:scale-95"><Icons.Refresh className="w-4 h-4" />Reset Week</button></div>
+                        ) : activeDay === "Progress" ? ( renderProgressTab() ) : (
                             /* TABLE VIEW START */
                             <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
-                                <div className="w-full max-w-5xl h-full flex flex-col glass-panel rounded-3xl overflow-hidden relative animate-fade-in shadow-2xl">
+                                <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
                                     {/* TABLE HEADER */}
-                                    <div className="flex glass-header sticky top-0 z-20 backdrop-blur-xl">
-                                        <div className="flex-none w-48 md:w-72 p-4 border-r border-white/5 z-20 flex items-center justify-between bg-slate-900/40">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exercise</span>
+                                    <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
+                                        <div className="flex-none w-40 md:w-64 p-3 border-r border-slate-800 z-20 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
                                                 <button 
                                                     onClick={() => setIsEditingExercises(!isEditingExercises)} 
-                                                    className={`p-1.5 rounded-lg transition-all ${isEditingExercises ? 'text-emerald-400 bg-emerald-500/20 ring-1 ring-emerald-500/50' : 'text-slate-600 hover:text-white hover:bg-white/10'}`}
-                                                    title={isEditingExercises ? "Finish Editing" : "Edit Exercises"}
+                                                    className={`p-1 rounded hover:bg-slate-700/50 transition-colors ${isEditingExercises ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600'}`}
+                                                    title="Edit Exercises"
                                                 >
-                                                    {isEditingExercises ? <Icons.Check className="w-3.5 h-3.5" /> : <Icons.Edit className="w-3.5 h-3.5" />}
+                                                    {isEditingExercises ? <Icons.Check className="w-3 h-3" /> : <Icons.Edit className="w-3 h-3" />}
                                                 </button>
                                             </div>
-                                            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest hidden md:inline px-2 py-1 bg-white/5 rounded-md border border-white/5">{currentExercises.length} Total</span>
+                                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest hidden md:inline">{currentExercises.length} Total</span>
                                         </div>
                                         <div className="flex flex-1 overflow-x-auto no-scrollbar">
                                             {sessions.map((session) => (
-                                                <div key={session} className="flex-1 min-w-[120px] py-2 px-1 border-r border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
-                                                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'Session ')}</span>
+                                                <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center">
+                                                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'S')}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
 
                                     {/* TABLE BODY */}
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar pb-16">
                                         {currentExercises.map((exercise, idx) => (
-                                            <div key={idx} className={`flex border-b border-white/5 hover:bg-white/[0.02] transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.01]'}`}>
-                                                <div className="flex-none w-48 md:w-72 py-3 px-4 border-r border-white/5 sticky left-0 z-10 flex flex-col justify-center bg-[#050810]/95 md:bg-transparent md:backdrop-blur-none transition-colors">
+                                            <div key={idx} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
+                                                <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none transition-colors">
                                                     {isEditingExercises ? (
-                                                        <div className="flex items-center gap-2 animate-fade-in">
+                                                        <div className="flex items-center gap-2">
                                                             <input 
                                                                 type="text" 
                                                                 value={exercise} 
                                                                 onChange={(e) => handleExerciseRename(activeDay, idx, e.target.value)}
-                                                                className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all shadow-inner"
+                                                                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 focus:outline-none"
                                                             />
                                                             <button 
                                                                 onClick={() => handleExerciseDelete(activeDay, idx)}
-                                                                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-all"
+                                                                className="text-slate-600 hover:text-red-400 transition-colors p-1"
                                                             >
-                                                                <Icons.Trash className="w-3.5 h-3.5" />
+                                                                <Icons.Trash className="w-3 h-3" />
                                                             </button>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-100 transition-colors">{exercise}</span>
-                                                            {EXERCISE_NOTES[exercise] && <span className="text-[9px] text-emerald-500/60 md:hidden mt-1 font-mono flex items-center gap-1"><Icons.Lightbulb className="w-2.5 h-2.5" /> Tip</span>}
+                                                            <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-200 transition-colors">{exercise}</span>
+                                                            <span className="text-[9px] text-slate-600 md:hidden mt-0.5 font-mono truncate">{EXERCISE_NOTES[exercise] ? "Tip available" : ""}</span>
                                                         </>
                                                     )}
                                                 </div>
-                                                <div className={`flex flex-1 ${isEditingExercises ? 'opacity-20 pointer-events-none grayscale blur-[1px]' : ''}`}>
+                                                <div className={`flex flex-1 ${isEditingExercises ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
                                                     {sessions.map((session) => {
                                                         const completedSets = getCompletedSets(activeDay, exercise, session);
                                                         const isCompleted = completedSets.length > 0;
                                                         const isSelected = selectedCell?.exercise === exercise && selectedCell?.session === session;
                                                         
                                                         return (
-                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[120px] p-1 border-r border-white/5 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative group/cell ${isSelected ? 'bg-emerald-500/10 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)]' : 'hover:bg-white/[0.03]'}`} onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
+                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-1 border-r border-slate-800/30 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : ''}`} onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
                                                                 {isCompleted ? (
-                                                                    <div className="flex flex-col gap-1 w-full px-2">
+                                                                    <div className="flex flex-col gap-0.5 w-full px-1">
                                                                         {completedSets.map((set, idx) => (
-                                                                            <div key={idx} className="flex justify-center items-center gap-1 text-[10px] font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-md py-0.5 px-2 shadow-sm">
+                                                                            <div key={idx} className="flex justify-center items-center gap-0.5 text-[10px] font-mono text-emerald-400 bg-emerald-900/20 rounded px-1">
                                                                                 <span className="font-bold">{set.weight}</span>
-                                                                                <span className="text-emerald-600 text-[8px]">×</span>
+                                                                                <span className="text-slate-600 text-[8px]">×</span>
                                                                                 <span>{set.reps}</span>
                                                                             </div>
                                                                         ))}
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center py-4">
-                                                                        <div className="h-7 w-16 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase tracking-wider group-hover/cell:border-emerald-500/30 group-hover/cell:text-emerald-400 group-hover/cell:bg-emerald-500/5 transition-all shadow-sm">
+                                                                    <div className="group/cell flex items-center justify-center w-full h-full py-3">
+                                                                        <div className="h-6 w-12 rounded-full border border-slate-800 bg-slate-900/50 flex items-center justify-center text-[9px] text-slate-600 group-hover/cell:border-emerald-500/30 group-hover/cell:text-emerald-400 transition-all">
                                                                            Log
                                                                         </div>
                                                                     </div>
@@ -962,23 +926,23 @@
                                         ))}
                                         {/* ADD BUTTON IN EDIT MODE */}
                                         {isEditingExercises && (
-                                            <div className="p-4 flex justify-center border-t border-dashed border-white/10 bg-white/[0.01]">
+                                            <div className="p-2 flex justify-center">
                                                 <button 
                                                     onClick={() => handleExerciseAdd(activeDay)}
-                                                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-xl border border-dashed border-emerald-500/30 hover:border-emerald-500 hover:shadow-glow-sm transition-all"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 transition-all"
                                                 >
-                                                    <Icons.Plus className="w-3.5 h-3.5" /> Add New Exercise
+                                                    <Icons.Plus className="w-3 h-3" /> Add Exercise
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                     
                                     {/* FOOTER ACTIONS */}
-                                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 border-t border-white/10 flex items-center justify-between p-4 z-30 backdrop-blur-xl">
-                                         <div className={`flex gap-3 w-full justify-around ${isEditingExercises ? 'opacity-30 pointer-events-none' : ''}`}>
+                                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between p-3 z-30 backdrop-blur-md">
+                                         <div className={`flex gap-2 w-full justify-around ${isEditingExercises ? 'opacity-30 pointer-events-none' : ''}`}>
                                             {sessions.map((session) => (
-                                                <button key={session} onClick={() => handleSaveSession(session)} className="flex-1 max-w-[240px] py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-bold rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2 active:scale-[0.98] border border-white/10">
-                                                    <Icons.Save className="w-3.5 h-3.5" /> Save {session}
+                                                <button key={session} onClick={() => handleSaveSession(session)} className="flex-1 max-w-[200px] py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+                                                    <Icons.Save className="w-3 h-3" /> Save {session}
                                                 </button>
                                             ))}
                                          </div>
@@ -992,74 +956,70 @@
                     {/* MODALS */}
                     {selectedCell && (
                         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end pointer-events-none">
-                            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto transition-opacity duration-300" onClick={() => setSelectedCell(null)}></div>
-                            <div className="pointer-events-auto w-full sm:w-[400px] h-[80vh] sm:h-screen bg-[#050810]/95 border-l border-white/10 shadow-2xl transform transition-transform duration-300 flex flex-col animate-slide-up sm:animate-slide-left rounded-t-3xl sm:rounded-none backdrop-blur-xl">
-                                <div className="p-6 border-b border-white/10 flex justify-between items-start bg-white/5 sticky top-0 rounded-t-3xl sm:rounded-none z-10 backdrop-blur-md">
-                                    <div className="flex-1 mr-6">
-                                        <h2 className="text-xl font-bold text-white mb-1 line-clamp-1 leading-tight tracking-tight">{selectedCell.exercise}</h2>
-                                        <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-widest"><Icons.Dumbbell className="w-3.5 h-3.5" /> {selectedCell.session}</div>
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto transition-opacity" onClick={() => setSelectedCell(null)}></div>
+                            <div className="pointer-events-auto w-full sm:w-[380px] h-[75vh] sm:h-screen bg-slate-900 border-l border-slate-700 shadow-2xl transform transition-transform duration-300 flex flex-col animate-slide-up sm:animate-slide-left rounded-t-2xl sm:rounded-none">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-start bg-slate-900 sticky top-0 rounded-t-2xl sm:rounded-none z-10">
+                                    <div className="flex-1 mr-4">
+                                        <h2 className="text-lg font-bold text-white mb-0.5 line-clamp-1">{selectedCell.exercise}</h2>
+                                        <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium uppercase tracking-wider"><Icons.Dumbbell className="w-3 h-3" /> {selectedCell.session}</div>
                                     </div>
-                                    <button onClick={() => setSelectedCell(null)} className="p-2 -mr-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"><Icons.X className="w-6 h-6" /></button>
+                                    <button onClick={() => setSelectedCell(null)} className="p-2 -mr-2 text-slate-400 hover:text-white transition-colors"><Icons.X className="w-5 h-5" /></button>
                                 </div>
-                                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                                    <div className="space-y-6">
-                                        <div className="flex items-center gap-4 px-2">
-                                            <div className="w-8 text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">Set</div>
-                                            <div className="flex-1 grid grid-cols-2 gap-4">
-                                                <div className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">Weight (KG)</div>
-                                                <div className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reps</div>
+                                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 px-2">
+                                            <div className="w-6 text-center text-[10px] font-bold text-slate-500 uppercase">#</div>
+                                            <div className="flex-1 grid grid-cols-2 gap-3">
+                                                <div className="text-center text-[10px] font-bold text-slate-500 uppercase">KG</div>
+                                                <div className="text-center text-[10px] font-bold text-slate-500 uppercase">REPS</div>
                                             </div>
                                         </div>
                                         
                                         {workoutData[selectedCell.dayKey]?.[selectedCell.exercise]?.[selectedCell.session]?.sets.map((set, index) => (
-                                            <div key={index} className="flex items-center gap-4 mb-3 animate-fade-in" style={{animationDelay: `${index * 50}ms`}}>
-                                                <div className="flex-none w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 border border-white/5 shadow-inner">{index + 1}</div>
-                                                <div className="flex-1 grid grid-cols-2 gap-4">
-                                                    <div className="relative">
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="0" 
-                                                            value={set.weight} 
-                                                            onChange={(e) => handleSetUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, index, 'weight', e.target.value)} 
-                                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center font-mono text-lg text-white focus:outline-none focus:border-emerald-500 focus:bg-emerald-500/10 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-slate-700" 
-                                                        />
-                                                    </div>
-                                                    <div className="relative">
-                                                        <input 
-                                                            type="number" 
-                                                            placeholder="0" 
-                                                            value={set.reps} 
-                                                            onChange={(e) => handleSetUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, index, 'reps', e.target.value)} 
-                                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 text-center font-mono text-lg text-white focus:outline-none focus:border-emerald-500 focus:bg-emerald-500/10 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-slate-700" 
-                                                        />
-                                                    </div>
+                                            <div key={index} className="flex items-center gap-3 mb-2">
+                                                <div className="flex-none w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 border border-slate-700">{index + 1}</div>
+                                                <div className="flex-1 grid grid-cols-2 gap-3">
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="-" 
+                                                        value={set.weight} 
+                                                        onChange={(e) => handleSetUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, index, 'weight', e.target.value)} 
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-md py-2 text-center font-mono text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-slate-800" 
+                                                    />
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="-" 
+                                                        value={set.reps} 
+                                                        onChange={(e) => handleSetUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, index, 'reps', e.target.value)} 
+                                                        className="w-full bg-slate-950 border border-slate-700 rounded-md py-2 text-center font-mono text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-slate-800" 
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
 
-                                        <div className="mt-8 space-y-4">
+                                        <div className="mt-6 space-y-3">
                                             {EXERCISE_NOTES[selectedCell.exercise] && (
-                                                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_-5px_rgba(59,130,246,0.2)]">
-                                                    <h4 className="flex items-center gap-2 text-xs font-bold text-blue-300 mb-1.5 uppercase tracking-wider"><Icons.Lightbulb className="w-3.5 h-3.5" /> Form Cue</h4>
-                                                    <p className="text-xs text-slate-300 leading-relaxed font-medium">{EXERCISE_NOTES[selectedCell.exercise]}</p>
+                                                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-400 mb-1"><Icons.Lightbulb className="w-3 h-3" /> Form Tip</h4>
+                                                    <p className="text-xs text-slate-300 leading-relaxed">{EXERCISE_NOTES[selectedCell.exercise]}</p>
                                                 </div>
                                             )}
                                             
                                             <div>
-                                                <h4 className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider"><Icons.MessageSquare className="w-3.5 h-3.5" /> Session Notes</h4>
+                                                <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Notes</h4>
                                                 <textarea 
                                                     value={workoutData[selectedCell.dayKey]?.[selectedCell.exercise]?.[selectedCell.session]?.comment || ''} 
                                                     onChange={(e) => handleCommentUpdate(selectedCell.dayKey, selectedCell.exercise, selectedCell.session, e.target.value)} 
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all resize-none h-24 placeholder:text-slate-600 shadow-inner"
-                                                    placeholder="How did it feel? Any pain? Next time increase weight?..."
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 focus:outline-none focus:border-emerald-500 transition-colors resize-none h-20 placeholder:text-slate-600"
+                                                    placeholder="Weights felt heavy? Shoulder pain?"
                                                 ></textarea>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 border-t border-white/10 bg-slate-900/80 pb-8 sm:pb-6 backdrop-blur-xl">
-                                    <button onClick={() => setSelectedCell(null)} className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-white/10 text-sm tracking-wide">
-                                        <Icons.Check className="w-5 h-5" /> Save & Close
+                                <div className="p-4 border-t border-slate-800 bg-slate-900 pb-8 sm:pb-4">
+                                    <button onClick={() => setSelectedCell(null)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                        <Icons.Check className="w-4 h-4" /> Save & Close
                                     </button>
                                 </div>
                             </div>
@@ -1067,38 +1027,32 @@
                     )}
 
                     {showResetConfirm && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-                            <div className="glass-panel border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-xl font-bold text-white mb-2">Reset Weekly Data?</h3>
-                                <p className="text-slate-400 text-sm mb-6 leading-relaxed">This will clear all sets logged for the current week. History graphs will remain, but this week's table will be empty.</p>
-                                <div className="flex gap-3">
-                                    <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-sm transition-colors border border-white/5">Cancel</button>
-                                    <button onClick={resetAllData} className="flex-1 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold rounded-xl text-sm transition-colors">Reset Data</button>
-                                </div>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                                <h3 className="text-lg font-bold text-white mb-2">Reset Weekly Data?</h3>
+                                <p className="text-slate-400 text-sm mb-6">This will clear all logged sets for the current week. This cannot be undone.</p>
+                                <div className="flex gap-3"><button onClick={() => setShowResetConfirm(false)} className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-sm transition-colors">Cancel</button><button onClick={resetAllData} className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-sm transition-colors">Reset Data</button></div>
                             </div>
                         </div>
                     )}
 
-                    {showSettingsModal && <SettingsModal initialType={programType} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSplit} onClearData={() => setShowResetConfirm(true)} />}
+                    {showSettingsModal && <SettingsModal initialType={programType} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSplit} />}
                     
                     {showFirebaseAlert && (
-                        <div className="fixed top-0 left-0 right-0 p-3 bg-red-500/90 text-white text-center font-bold z-[60] backdrop-blur-md shadow-lg">
+                        <div className="fixed top-0 left-0 right-0 p-2 bg-red-500/90 text-white text-center font-bold z-[60] backdrop-blur-sm">
                             <div className="flex items-center justify-center gap-2 text-xs">
                                 <Icons.Alert className="w-4 h-4" />
-                                <span>Cloud Sync Disabled (Missing API Keys)</span>
-                                <button onClick={() => setShowFirebaseAlert(false)} className="ml-4 hover:bg-white/20 rounded p-1"><Icons.X className="w-3 h-3" /></button>
+                                <span>Cloud Sync Disabled (No Keys)</span>
+                                <button onClick={() => setShowFirebaseAlert(false)} className="ml-2 hover:bg-white/20 rounded p-0.5"><Icons.X className="w-3 h-3" /></button>
                             </div>
                         </div>
                     )}
                     
                     {/* PORTRAIT ROTATION PROMPT */}
-                    <div className="fixed inset-0 z-[9999] bg-[#02040a] flex flex-col items-center justify-center p-8 text-center md:hidden portrait:flex landscape:hidden">
-                       <div className="relative mb-6">
-                           <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full"></div>
-                           <Icons.RotateCcw className="relative w-16 h-16 text-emerald-400 animate-spin-slow" />
-                       </div>
-                       <h2 className="text-2xl font-bold text-white mb-3">Rotate Your Phone</h2>
-                       <p className="text-slate-400 text-sm max-w-xs leading-relaxed">FocusFit is designed for landscape mode to give you the best overview of your weekly progress.</p>
+                    <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center p-6 text-center md:hidden portrait:flex landscape:hidden">
+                       <Icons.RotateCcw className="w-12 h-12 text-emerald-500 mb-4 animate-spin" />
+                       <h2 className="text-xl font-bold text-white mb-2">Rotate Your Phone</h2>
+                       <p className="text-slate-400 text-sm">This app is optimized for landscape mode.</p>
                     </div>
                 </div>
             );
