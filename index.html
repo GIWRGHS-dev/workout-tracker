@@ -323,139 +323,62 @@
             );
         };
 
-        const EditExercisesModal = ({ currentSplit, initialType, onClose, onSave }) => {
-            // UPDATED: Manage local type state to avoid background flickering
+        const SettingsModal = ({ initialType, onClose, onSave }) => {
             const [localType, setLocalType] = useState(initialType);
-
-            const [localSplitArr, setLocalSplitArr] = useState(() => {
-                return Object.keys(currentSplit).map(key => ({
-                    key: key,
-                    exercises: currentSplit[key]
-                }));
-            });
-
-            // Update local split array when type changes internally in modal
-            useEffect(() => {
-                if (localType === 'ppl') {
-                    setLocalSplitArr(Object.keys(SPLIT_PPL).map(key => ({ key, exercises: SPLIT_PPL[key] })));
-                } else if (localType === 'simple') {
-                    setLocalSplitArr(Object.keys(SPLIT_SIMPLE).map(key => ({ key, exercises: SPLIT_SIMPLE[key] })));
-                }
-            }, [localType]);
-
-            const handleNameChange = (dayIndex, exIndex, newName) => {
-                const updated = [...localSplitArr];
-                updated[dayIndex].exercises[exIndex] = newName;
-                setLocalSplitArr(updated);
-            };
-
-            const handleTitleChange = (dayIndex, newTitle) => {
-                const updated = [...localSplitArr];
-                updated[dayIndex].key = newTitle;
-                setLocalSplitArr(updated);
-            };
-
-            const handleDeleteExercise = (dayIndex, exIndex) => {
-                const updated = [...localSplitArr];
-                updated[dayIndex].exercises = updated[dayIndex].exercises.filter((_, i) => i !== exIndex);
-                setLocalSplitArr(updated);
-            };
-
-            const handleAddExercise = (dayIndex) => {
-                const updated = [...localSplitArr];
-                updated[dayIndex].exercises.push("New Exercise");
-                setLocalSplitArr(updated);
-            };
 
             const handleReset = () => {
                 if (confirm("Reset current program to defaults?")) {
                     const target = localType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE;
-                    setLocalSplitArr(Object.keys(target).map(key => ({ key, exercises: target[key] })));
+                    onSave(target, localType);
                 }
             };
 
             const handleSaveInternal = () => {
-                const finalObj = {};
-                localSplitArr.forEach(item => {
-                    finalObj[item.key] = item.exercises;
-                });
-                onSave(finalObj, localType); // Pass back the final type
+                // If switching types, we load default split for that type
+                // If staying on same type, we just pass null for split (implies keep current)
+                // But simplified logic: Just reload default split for the selected type to be safe?
+                // Or try to keep currentSplit if type matches?
+                // For simplicity: If type changed, load default. If type same, do nothing.
+                
+                let newSplit = null;
+                if (localType === 'ppl') newSplit = SPLIT_PPL;
+                else newSplit = SPLIT_SIMPLE;
+
+                onSave(newSplit, localType);
             };
 
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-                        <div className="p-4 border-b border-slate-700 bg-slate-900 sticky top-0 rounded-t-2xl z-10 space-y-4">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-lg font-bold text-white">Settings</h2>
-                                <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><Icons.X className="w-6 h-6" /></button>
-                            </div>
-                            
-                            <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
-                                <button 
-                                    onClick={() => setLocalType('ppl')}
-                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    Push / Pull / Legs
-                                </button>
-                                <button 
-                                    onClick={() => setLocalType('simple')}
-                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    Weekly (Mon-Sun)
-                                </button>
-                            </div>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
+                        <div className="p-4 border-b border-slate-700 bg-slate-900 sticky top-0 rounded-t-2xl z-10 flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-white">Program Settings</h2>
+                            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><Icons.X className="w-6 h-6" /></button>
                         </div>
+                        
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Program Type</label>
+                                <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
+                                    <button 
+                                        onClick={() => setLocalType('ppl')}
+                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        PPL
+                                    </button>
+                                    <button 
+                                        onClick={() => setLocalType('simple')}
+                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Weekly
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">Switching programs will load the default exercises for that split.</p>
+                            </div>
 
-                        <div className="overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                            {localSplitArr.map((dayObj, dayIdx) => {
-                                if (dayObj.key === "Rest") return null;
-                                return (
-                                    <div key={dayIdx}>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            {localType === 'simple' ? (
-                                                <input 
-                                                    type="text" 
-                                                    value={dayObj.key}
-                                                    onChange={(e) => handleTitleChange(dayIdx, e.target.value)}
-                                                    className="bg-transparent text-emerald-400 font-bold text-sm uppercase tracking-wider border-b border-dashed border-emerald-500/50 focus:border-emerald-500 focus:outline-none w-full"
-                                                />
-                                            ) : (
-                                                <h3 className="text-emerald-400 font-bold text-sm uppercase tracking-wider">{dayObj.key}</h3>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="space-y-3 pl-2 border-l border-slate-800">
-                                            {dayObj.exercises.map((ex, exIdx) => (
-                                                <div key={exIdx} className="flex gap-2 items-center group">
-                                                    <span className="text-slate-500 font-mono text-xs w-4">{exIdx + 1}.</span>
-                                                    <input 
-                                                        type="text" 
-                                                        value={ex} 
-                                                        onChange={(e) => handleNameChange(dayIdx, exIdx, e.target.value)}
-                                                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
-                                                    />
-                                                    <button 
-                                                        onClick={() => handleDeleteExercise(dayIdx, exIdx)}
-                                                        className="p-2 text-slate-600 hover:text-red-400 transition-colors"
-                                                        title="Delete Exercise"
-                                                    >
-                                                        <Icons.Trash className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                            <button 
-                                                onClick={() => handleAddExercise(dayIdx)}
-                                                className="mt-2 text-xs flex items-center gap-1 text-emerald-500 hover:text-emerald-400 font-medium py-1 px-2 rounded hover:bg-emerald-500/10 transition-colors"
-                                            >
-                                                <Icons.Plus className="w-3 h-3" /> Add Exercise
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
                             <div className="pt-4 border-t border-slate-800">
-                                <button onClick={handleReset} className="text-xs text-red-400 hover:text-red-300 underline">Reset to Default Exercises</button>
+                                <button onClick={handleReset} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
+                                    <Icons.Refresh className="w-4 h-4" /> Reset to Default
+                                </button>
                             </div>
                         </div>
                         <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl">
@@ -498,7 +421,8 @@
             }, [programType]);
 
             const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [showEditModal, setShowEditModal] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [isEditingExercises, setIsEditingExercises] = useState(false); // NEW STATE
             
             const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
             const [historyData, setHistoryData] = useState([]);
@@ -608,16 +532,92 @@
             // UPDATED: handleSaveSplit now accepts newType
             const handleSaveSplit = (newSplit, newType) => {
                 setProgramType(newType);
-                const newWorkoutData = generateInitialData(newSplit, newType);
-                setWorkoutSplit(newSplit);
-                setWorkoutData(newWorkoutData);
+                if (newSplit) { // Only update split if provided (switching types or reset)
+                    const newWorkoutData = generateInitialData(newSplit, newType);
+                    setWorkoutSplit(newSplit);
+                    setWorkoutData(newWorkoutData);
+                    
+                    // Update active day to first key
+                    const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
+                    if (keys.length > 0) setActiveDay(keys[0]);
+                }
                 
-                // Update active day to first key
-                const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
-                if (keys.length > 0) setActiveDay(keys[0]);
-                
-                setShowEditModal(false);
+                setShowSettingsModal(false);
             };
+
+            // NEW: EXERCISE MANAGEMENT FUNCTIONS
+            const handleExerciseRename = (day, idx, newName) => {
+                const oldName = workoutSplit[day][idx];
+                if (oldName === newName) return;
+
+                // 1. Update Split List
+                const newSplit = { ...workoutSplit };
+                newSplit[day] = [...newSplit[day]];
+                newSplit[day][idx] = newName;
+                setWorkoutSplit(newSplit);
+
+                // 2. Migrate Data (Preserve logs)
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (newData[day] && newData[day][oldName]) {
+                        newData[day][newName] = newData[day][oldName];
+                        delete newData[day][oldName];
+                    } else {
+                        // If no data existed for old name, init new one
+                        if (!newData[day]) newData[day] = {};
+                        newData[day][newName] = {};
+                        sessions.forEach(label => {
+                            newData[day][newName][label] = { 
+                                sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
+                                completed: false,
+                                comment: ""
+                            };
+                        });
+                    }
+                    return newData;
+                });
+            };
+
+            const handleExerciseAdd = (day) => {
+                const newSplit = { ...workoutSplit };
+                const newName = "New Exercise " + (newSplit[day].length + 1);
+                newSplit[day] = [...newSplit[day], newName];
+                setWorkoutSplit(newSplit);
+                
+                // Init data for new exercise
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (!newData[day]) newData[day] = {};
+                    newData[day][newName] = {};
+                    sessions.forEach(label => {
+                        newData[day][newName][label] = { 
+                            sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
+                            completed: false,
+                            comment: ""
+                        };
+                    });
+                    return newData;
+                });
+            };
+
+            const handleExerciseDelete = (day, idx) => {
+                if(!confirm("Remove this exercise?")) return;
+                const exerciseName = workoutSplit[day][idx];
+                
+                const newSplit = { ...workoutSplit };
+                newSplit[day] = newSplit[day].filter((_, i) => i !== idx);
+                setWorkoutSplit(newSplit);
+                
+                // Cleanup data
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (newData[day] && newData[day][exerciseName]) {
+                        delete newData[day][exerciseName];
+                    }
+                    return newData;
+                });
+            };
+
 
             const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
                 setWorkoutData(prev => {
@@ -811,7 +811,7 @@
                                  <span className="px-2 text-[10px] font-mono font-bold text-emerald-400 select-none whitespace-nowrap min-w-[70px] text-center">{weekRangeString}</span>
                                  <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
-                             <button onClick={() => setShowEditModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
+                             <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
                          </div>
                     </nav>
 
@@ -844,13 +844,22 @@
                                     {/* TABLE HEADER */}
                                     <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
                                         <div className="flex-none w-40 md:w-64 p-3 border-r border-slate-800 z-20 flex items-center justify-between">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
+                                                <button 
+                                                    onClick={() => setIsEditingExercises(!isEditingExercises)} 
+                                                    className={`p-1 rounded hover:bg-slate-700/50 transition-colors ${isEditingExercises ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600'}`}
+                                                    title="Edit Exercises"
+                                                >
+                                                    {isEditingExercises ? <Icons.Check className="w-3 h-3" /> : <Icons.Edit className="w-3 h-3" />}
+                                                </button>
+                                            </div>
                                             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest hidden md:inline">{currentExercises.length} Total</span>
                                         </div>
                                         <div className="flex flex-1 overflow-x-auto no-scrollbar">
                                             {sessions.map((session) => (
                                                 <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{session.replace('Session ', 'S')}</span>
+                                                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'S')}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -859,19 +868,38 @@
                                     {/* TABLE BODY */}
                                     <div className="flex-1 overflow-y-auto custom-scrollbar pb-16">
                                         {currentExercises.map((exercise, idx) => (
-                                            <div key={exercise} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
-                                                <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none group-hover:bg-slate-900/95 md:group-hover:bg-transparent transition-colors">
-                                                    <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-200 transition-colors">{exercise}</span>
-                                                    <span className="text-[9px] text-slate-600 md:hidden mt-0.5 font-mono truncate">{EXERCISE_NOTES[exercise] ? "Tip available" : ""}</span>
+                                            <div key={idx} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
+                                                <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none transition-colors">
+                                                    {isEditingExercises ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <input 
+                                                                type="text" 
+                                                                value={exercise} 
+                                                                onChange={(e) => handleExerciseRename(activeDay, idx, e.target.value)}
+                                                                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                                                            />
+                                                            <button 
+                                                                onClick={() => handleExerciseDelete(activeDay, idx)}
+                                                                className="text-slate-600 hover:text-red-400 transition-colors p-1"
+                                                            >
+                                                                <Icons.Trash className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-200 transition-colors">{exercise}</span>
+                                                            <span className="text-[9px] text-slate-600 md:hidden mt-0.5 font-mono truncate">{EXERCISE_NOTES[exercise] ? "Tip available" : ""}</span>
+                                                        </>
+                                                    )}
                                                 </div>
-                                                <div className="flex flex-1">
+                                                <div className={`flex flex-1 ${isEditingExercises ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
                                                     {sessions.map((session) => {
                                                         const completedSets = getCompletedSets(activeDay, exercise, session);
                                                         const isCompleted = completedSets.length > 0;
                                                         const isSelected = selectedCell?.exercise === exercise && selectedCell?.session === session;
                                                         
                                                         return (
-                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-1 border-r border-slate-800/30 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : ''}`} onClick={() => { setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
+                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-1 border-r border-slate-800/30 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : ''}`} onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
                                                                 {isCompleted ? (
                                                                     <div className="flex flex-col gap-0.5 w-full px-1">
                                                                         {completedSets.map((set, idx) => (
@@ -895,11 +923,22 @@
                                                 </div>
                                             </div>
                                         ))}
+                                        {/* ADD BUTTON IN EDIT MODE */}
+                                        {isEditingExercises && (
+                                            <div className="p-2 flex justify-center">
+                                                <button 
+                                                    onClick={() => handleExerciseAdd(activeDay)}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 transition-all"
+                                                >
+                                                    <Icons.Plus className="w-3 h-3" /> Add Exercise
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {/* FOOTER ACTIONS */}
                                     <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between p-3 z-30 backdrop-blur-md">
-                                         <div className="flex gap-2 w-full justify-around">
+                                         <div className={`flex gap-2 w-full justify-around ${isEditingExercises ? 'opacity-30 pointer-events-none' : ''}`}>
                                             {sessions.map((session) => (
                                                 <button key={session} onClick={() => handleSaveSession(session)} className="flex-1 max-w-[200px] py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
                                                     <Icons.Save className="w-3 h-3" /> Save {session}
@@ -996,7 +1035,7 @@
                         </div>
                     )}
 
-                    {showEditModal && <EditExercisesModal currentSplit={workoutSplit} initialType={programType} onClose={() => setShowEditModal(false)} onSave={handleSaveSplit} />}
+                    {showSettingsModal && <SettingsModal initialType={programType} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSplit} />}
                     
                     {showFirebaseAlert && (
                         <div className="fixed top-0 left-0 right-0 p-2 bg-red-500/90 text-white text-center font-bold z-[60] backdrop-blur-sm">
