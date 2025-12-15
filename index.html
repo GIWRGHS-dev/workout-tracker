@@ -23,61 +23,33 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // NEW: Import Auth functions
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // ============================================================
         // 🔴 PASTE YOUR CONFIG HERE 🔴
         // ============================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8", // <--- Make sure this matches your key
-            authDomain: "gym-tracker-b14ce.firebaseapp.com",
-            projectId: "gym-tracker-b14ce",
-            storageBucket: "gym-tracker-b14ce.firebasestorage.app",
-            messagingSenderId: "122178207860",
-            appId: "1:122178207860:web:05a1454788223ac39d9121"
+            apiKey: "YOUR_API_KEY", 
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         // ============================================================
 
-        if (!firebaseConfig.projectId || firebaseConfig.projectId === "") {
+        if (!firebaseConfig.projectId || firebaseConfig.projectId === "" || firebaseConfig.projectId.includes("YOUR_")) {
             console.warn("Firebase is not configured.");
             window.firebaseConfigured = false;
         } else {
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
-            const auth = getAuth(app); // Initialize Auth
-            const provider = new GoogleAuthProvider(); // Google Login Provider
-
+            
             window.firebaseConfigured = true;
-            window.auth = auth; // Make auth accessible to React
 
-            // --- EXPOSE AUTH FUNCTIONS TO REACT ---
-            window.loginWithGoogle = async () => {
-                try {
-                    await signInWithPopup(auth, provider);
-                    return { success: true };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            };
-
-            window.logoutUser = async () => {
-                try {
-                    await signOut(auth);
-                    return { success: true };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            };
-
-            // --- DATABASE FUNCTIONS (Now with User Filtering!) ---
+            // --- DATABASE FUNCTIONS (Simple Version - No User ID Filtering) ---
 
             window.saveToFirebase = async (dataPayload) => {
-                if (!auth.currentUser) return { success: false, error: "Not logged in" };
-                
-                // 🔴 AUTOMATICALLY TAG DATA WITH USER ID
-                dataPayload.uid = auth.currentUser.uid; 
-
+                // No login check needed
                 try {
                     const docRef = await addDoc(collection(db, "workouts"), dataPayload);
                     return { success: true, id: docRef.id };
@@ -87,7 +59,6 @@
             };
 
             window.updateInFirebase = async (docId, dataPayload) => {
-                if (!auth.currentUser) return { success: false, error: "Not logged in" };
                 try {
                     const docRef = doc(db, "workouts", docId);
                     await updateDoc(docRef, dataPayload);
@@ -98,13 +69,11 @@
             };
 
             window.getFromFirebase = async (exerciseName) => {
-                if (!auth.currentUser) return [];
                 try {
-                    // 🔴 ONLY GET DATA THAT MATCHES MY ID
+                    // Simple query: Just get logs for this exercise
                     const q = query(
                         collection(db, "workouts"), 
-                        where("exercise", "==", exerciseName),
-                        where("uid", "==", auth.currentUser.uid) 
+                        where("exercise", "==", exerciseName)
                     );
                     const querySnapshot = await getDocs(q);
                     const history = [];
@@ -128,14 +97,12 @@
             };
 
             window.getLogsByDateRange = async (startDateStr, endDateStr) => {
-                if (!auth.currentUser) return [];
                 try {
-                    // 🔴 ONLY GET DATA THAT MATCHES MY ID
+                    // Simple query: Just get logs by date
                     const q = query(
                         collection(db, "workouts"), 
                         where("date", ">=", startDateStr),
-                        where("date", "<=", endDateStr),
-                        where("uid", "==", auth.currentUser.uid)
+                        where("date", "<=", endDateStr)
                     );
                     const querySnapshot = await getDocs(q);
                     const logs = [];
@@ -428,35 +395,12 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(null);
+            // REMOVED: const [user, setUser] ...
             const [programType, setProgramType] = useState(() => localStorage.getItem('programType_v1') || 'ppl');
             const [workoutSplit, setWorkoutSplit] = useState(() => {
                 const saved = localStorage.getItem('workoutSplit_v1');
                 return saved ? JSON.parse(saved) : SPLIT_PPL;
             });
-
-            useEffect(() => {
-                if (!workoutSplit) {
-                    setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
-                }
-            }, []);
-
-            useEffect(() => {
-                if (window.auth) {
-                    // Listen for login/logout events
-                    window.auth.onAuthStateChanged((u) => {
-                        setUser(u);
-                        if (u) {
-                            // FIX: Pass 'u' (the user) directly to the fetch function
-                            // This ensures it loads data immediately without waiting for state updates
-                            fetchWeeklyData(currentWeekStart, u);
-                        } else {
-                            // If we logged out, clear the data
-                            setWorkoutData(generateInitialData(workoutSplit, programType));
-                        }
-                    });
-                }
-            }, []);
 
             const [activeDay, setActiveDay] = useState(() => {
                 const keys = Object.keys(workoutSplit).filter(k => k !== 'Rest');
@@ -465,59 +409,59 @@
 
             const [sessions, setSessions] = useState(() => generateSessionLabels(programType));
 
+            // --- STATE VARIABLES ---
+            const [showResetConfirm, setShowResetConfirm] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [isEditingExercises, setIsEditingExercises] = useState(false); 
+            const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
+            const [historyData, setHistoryData] = useState([]);
+            const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+            const [selectedCell, setSelectedCell] = useState(null);
+            const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
+            const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
+
+            // --- DATA LOADING (Reverted to Simple LocalStorage) ---
+            const [workoutData, setWorkoutData] = useState(() => { 
+                const startStr = formatDateISO(getMonday(new Date()));
+                // OLD KEY FORMAT: No User ID
+                const localKey = `workoutData_${startStr}`; 
+                const saved = localStorage.getItem(localKey);
+                
+                if (saved) return JSON.parse(saved);
+                return generateInitialData(workoutSplit, programType);
+            });
+
+            // --- EFFECTS ---
+
+            useEffect(() => {
+                if (!workoutSplit) setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
+            }, []);
+
             useEffect(() => {
                 setSessions(generateSessionLabels(programType));
             }, [programType]);
 
-            const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [showSettingsModal, setShowSettingsModal] = useState(false);
-            const [isEditingExercises, setIsEditingExercises] = useState(false); 
-            
-            const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
-            const [historyData, setHistoryData] = useState([]);
-            const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-            
-            const [workoutData, setWorkoutData] = useState(() => { 
-                // Try to find data for THIS week specifically
-                const startStr = formatDateISO(getMonday(new Date()));
-                const localKey = `workoutData_${startStr}`;
-                const saved = localStorage.getItem(localKey);
-                
-                if (saved) return JSON.parse(saved);
-                
-                // Fallback: Check for old legacy data or return blank
-                return generateInitialData(workoutSplit, programType);
-            });
-            const [selectedCell, setSelectedCell] = useState(null);
-            const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
-            
-            const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
-            // --- NEW: AUTO-SYNC ON LOAD ---
+            // AUTO-SYNC (Reverted: No User check)
             useEffect(() => {
                 const initialSync = async () => {
-                    // 1. Wait briefly for Firebase to initialize (fixes race condition)
                     let attempts = 0;
                     while (!window.firebaseConfigured && attempts < 10) {
                         await new Promise(r => setTimeout(r, 200));
                         attempts++;
                     }
-                    
-                    // 2. If connected, fetch the latest data for this week
                     if (window.firebaseConfigured) {
-                        console.log("Firebase connected. Auto-syncing...");
                         await fetchWeeklyData(currentWeekStart);
                     }
                 };
                 initialSync();
-            }, []); // Empty brackets [] mean this runs only once when App opens
-            // -----------------------------
+            }, []);
+
+            // SAVE TO LOCAL STORAGE (Reverted: Simple Key)
             useEffect(() => { 
-                if (user && user.uid) {
-                    // FIX: Save to a USER-SPECIFIC key so friends don't see each other's data
-                    const key = `workoutData_${user.uid}_${formatDateISO(currentWeekStart)}`;
-                    localStorage.setItem(key, JSON.stringify(workoutData)); 
-                }
-            }, [workoutData, currentWeekStart, user]);
+                const key = `workoutData_${formatDateISO(currentWeekStart)}`;
+                localStorage.setItem(key, JSON.stringify(workoutData)); 
+            }, [workoutData, currentWeekStart]);
+
             useEffect(() => { localStorage.setItem('workoutSplit_v1', JSON.stringify(workoutSplit)); }, [workoutSplit]);
             useEffect(() => { localStorage.setItem('programType_v1', programType); }, [programType]);
 
@@ -535,7 +479,6 @@
                             const data = await window.getFromFirebase(selectedHistoryExercise);
                             setHistoryData(data);
                         } else {
-                            console.error("Firebase Not Initialized");
                             setHistoryData([]);
                         }
                         setIsLoadingHistory(false);
@@ -557,38 +500,26 @@
                 fetchWeeklyData(newStart);
             };
 
-// FIX: Accept 'currentUser' as an argument to handle immediate logins
-            const fetchWeeklyData = async (startDate, currentUser = user) => {
+            // FETCH DATA (Reverted: No 'currentUser' argument)
+            const fetchWeeklyData = async (startDate) => {
                 const startStr = formatDateISO(startDate);
-                
-                // 1. Start with a BLANK template
                 let newData = generateInitialData(workoutSplit, programType); 
 
-                // 2. Try to load LOCAL data for THIS SPECIFIC USER
-                // We use 'currentUser' (passed in) OR 'user' (from state)
-                const activeUser = currentUser || user;
-
-                if (activeUser && activeUser.uid) {
-                    // FIX: Key now includes the user ID so accounts don't mix
-                    const localKey = `workoutData_${activeUser.uid}_${startStr}`;
-                    const localSaved = localStorage.getItem(localKey);
-                    
-                    if (localSaved) {
-                        try { 
-                            newData = JSON.parse(localSaved); 
-                        } catch(e) {
-                            console.error("Error parsing local data", e);
-                        }
-                    }
+                // 1. Load LOCAL data (Simple Key)
+                const localKey = `workoutData_${startStr}`;
+                const localSaved = localStorage.getItem(localKey);
+                
+                if (localSaved) {
+                    try { newData = JSON.parse(localSaved); } 
+                    catch(e) { console.error(e); }
                 }
 
-                // 3. If connected, OVERLAY cloud data on top
-                if (window.getLogsByDateRange && window.firebaseConfigured && activeUser) {
+                // 2. Load CLOUD data (No Auth Check)
+                if (window.getLogsByDateRange && window.firebaseConfigured) {
                     const endDate = new Date(startDate);
                     endDate.setDate(endDate.getDate() + 6);
                     const endStr = formatDateISO(endDate);
 
-                    // Note: window.getLogsByDateRange internally uses auth.currentUser, which is always up to date
                     const logs = await window.getLogsByDateRange(startStr, endStr);
 
                     if (logs && logs.length > 0) {
@@ -606,7 +537,6 @@
                             if (newData[category] && newData[category][exercise] && newData[category][exercise][session]) {
                                 const currentSession = newData[category][exercise][session];
                                 const latestSets = sets.slice(-3);
-                                
                                 latestSets.forEach((setLog, index) => {
                                     if (index < 3) {
                                         currentSession.sets[index].reps = setLog.reps;
@@ -623,344 +553,6 @@
                 setWorkoutData(newData);
             };
 
-            const handleSaveSplit = (newSplit, newType) => {
-                setProgramType(newType);
-                if (newSplit) {
-                    const newWorkoutData = generateInitialData(newSplit, newType);
-                    setWorkoutSplit(newSplit);
-                    setWorkoutData(newWorkoutData);
-                    
-                    const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
-                    if (keys.length > 0) setActiveDay(keys[0]);
-                }
-                
-                setShowSettingsModal(false);
-            };
-
-            const handleExerciseRename = (day, idx, newName) => {
-                const oldName = workoutSplit[day][idx];
-                if (oldName === newName) return;
-
-                const newSplit = { ...workoutSplit };
-                newSplit[day] = [...newSplit[day]];
-                newSplit[day][idx] = newName;
-                setWorkoutSplit(newSplit);
-
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (newData[day] && newData[day][oldName]) {
-                        newData[day][newName] = newData[day][oldName];
-                        delete newData[day][oldName];
-                    } else {
-                        if (!newData[day]) newData[day] = {};
-                        newData[day][newName] = {};
-                        sessions.forEach(label => {
-                            newData[day][newName][label] = { 
-                                sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
-                                completed: false,
-                                comment: ""
-                            };
-                        });
-                    }
-                    return newData;
-                });
-            };
-
-            const handleExerciseAdd = (day) => {
-                const newSplit = { ...workoutSplit };
-                const newName = "New Exercise " + (newSplit[day].length + 1);
-                newSplit[day] = [...newSplit[day], newName];
-                setWorkoutSplit(newSplit);
-                
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (!newData[day]) newData[day] = {};
-                    newData[day][newName] = {};
-                    sessions.forEach(label => {
-                        newData[day][newName][label] = { 
-                            sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
-                            completed: false,
-                            comment: ""
-                        };
-                    });
-                    return newData;
-                });
-            };
-
-            const handleExerciseDelete = (day, idx) => {
-                if(!confirm("Remove this exercise?")) return;
-                const exerciseName = workoutSplit[day][idx];
-                
-                const newSplit = { ...workoutSplit };
-                newSplit[day] = newSplit[day].filter((_, i) => i !== idx);
-                setWorkoutSplit(newSplit);
-                
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (newData[day] && newData[day][exerciseName]) {
-                        delete newData[day][exerciseName];
-                    }
-                    return newData;
-                });
-            };
-
-            // --- TOAST NOTIFICATION STATE ---
-            const [toast, setToast] = useState(null);
-
-            const showToast = (message, type = 'success') => {
-                setToast({ message, type });
-                // Auto-hide after 3 seconds
-                setTimeout(() => setToast(null), 3000);
-            };
-
-            const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    
-                    if (!newData[dayKey]) newData[dayKey] = {};
-                    if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
-                    
-                    const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
-                    
-                    sessionData.sets[setIndex][field] = value;
-                    sessionData.completed = sessionData.sets.some(s => s.reps !== '' || s.weight !== '');
-                    
-                    newData[dayKey][exercise][session] = sessionData;
-                    return newData;
-                });
-            };
-
-            const handleCommentUpdate = (dayKey, exercise, session, value) => {
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    
-                    if (!newData[dayKey]) newData[dayKey] = {};
-                    if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
-                    const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
-                    
-                    sessionData.comment = value;
-                    newData[dayKey][exercise][session] = sessionData;
-                    return newData;
-                });
-            };
-
-            const getCompletedSets = (dayKey, exercise, session) => {
-                const sets = workoutData[dayKey]?.[exercise]?.[session]?.sets || [];
-                return sets.filter(set => set.weight !== '' || set.reps !== '');
-            };
-
-            const currentExercises = workoutSplit[activeDay] || [];
-            
-            const resetAllData = () => { setWorkoutData(generateInitialData(workoutSplit, programType)); setShowResetConfirm(false); };
-
-            const handleSaveSession = async (sessionName) => {
-                if (!window.firebaseConfigured) {
-                    alert("Firebase keys are missing! Data will not be saved to the cloud.");
-                    return;
-                }
-
-                const sessionDate = new Date(currentWeekStart);
-                if (sessionName === "Session 2") {
-                    sessionDate.setDate(sessionDate.getDate() + 3); 
-                }
-                const dateStr = formatDateISO(sessionDate);
-
-                const exercises = workoutSplit[activeDay] || [];
-                let processedCount = 0;
-                const newWorkoutData = JSON.parse(JSON.stringify(workoutData));
-
-                for (const exercise of exercises) {
-                    const sessionData = newWorkoutData[activeDay]?.[exercise]?.[sessionName];
-                    if (sessionData && sessionData.sets) {
-                        for (let i = 0; i < sessionData.sets.length; i++) {
-                            const s = sessionData.sets[i];
-                            if (!s.weight || !s.reps) continue;
-
-                            const payload = { 
-                                date: dateStr, 
-                                exercise: exercise, 
-                                reps: parseInt(s.reps), 
-                                kg: parseFloat(s.weight), 
-                                category: activeDay, 
-                                session: sessionName, 
-                                comment: sessionData.comment || '' 
-                            };
-
-                            if (s.docId) {
-                                if (window.updateInFirebase) {
-                                    await window.updateInFirebase(s.docId, payload);
-                                    processedCount++;
-                                }
-                            } else {
-                                if (window.saveToFirebase) {
-                                    const result = await window.saveToFirebase(payload);
-                                    if (result.success && result.id) {
-                                        s.docId = result.id; 
-                                        processedCount++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (processedCount === 0) { 
-                    showToast("No data found to save!", "error");
-                } else {
-                    showToast(`Successfully saved ${processedCount} sets!`, "success");
-                    setWorkoutData(newWorkoutData);
-                }
-            };
-
-            const handleCopyPrevious = async (sessionName) => {
-                if (!window.firebaseConfigured) {
-                    showToast("Cloud sync disabled. Cannot fetch history.", "error");
-                    return;
-                }
-                
-                showToast(`Fetching last ${sessionName} data...`, "success");
-                
-                const exercises = workoutSplit[activeDay] || [];
-                let updateCount = 0;
-                // Create a deep copy of current state
-                const newWorkoutData = JSON.parse(JSON.stringify(workoutData)); 
-                
-                // Helper to find specific session in history
-                const findLastSessionLog = (history) => {
-                    // History comes sorted by Date ascending (oldest -> newest)
-                    // We reverse to find newest first
-                    const reversed = [...history].reverse();
-                    
-                    // Find the most recent date that has this session
-                    const lastEntry = reversed.find(h => {
-                         // Check if session matches (or if it's undefined/null, assume Session 1 for legacy data)
-                         const sess = h.Session || "Session 1"; 
-                         return sess === sessionName;
-                    });
-                    
-                    return lastEntry ? lastEntry.Date : null;
-                };
-
-                for (const exercise of exercises) {
-                    // Get full history for this exercise from Firebase
-                    const history = await window.getFromFirebase(exercise);
-                    
-                    if (history && history.length > 0) {
-                        const lastDate = findLastSessionLog(history);
-                        
-                        if (lastDate) {
-                            // Filter all sets performed on that specific date and session
-                            const lastSets = history.filter(h => h.Date === lastDate && (h.Session === sessionName || (!h.Session && sessionName === "Session 1")));
-                            
-                            if (lastSets.length > 0) {
-                                // Ensure structure exists
-                                if (!newWorkoutData[activeDay]) newWorkoutData[activeDay] = {};
-                                if (!newWorkoutData[activeDay][exercise]) newWorkoutData[activeDay][exercise] = {};
-                                
-                                const targetSession = newWorkoutData[activeDay][exercise][sessionName];
-                                
-                                // Map history rows to the 3 input sets
-                                lastSets.forEach((setLog, idx) => {
-                                    if (idx < 3) {
-                                         targetSession.sets[idx].weight = setLog.Kg;
-                                         targetSession.sets[idx].reps = setLog.Reps;
-                                    }
-                                });
-                                updateCount++;
-                            }
-                        }
-                    }
-                }
-                
-                if (updateCount > 0) {
-                    setWorkoutData(newWorkoutData);
-                    showToast(`Filled ${updateCount} exercises from history!`, "success");
-                } else {
-                    showToast("No previous history found for this session.", "error");
-                }
-            };
-
-            const renderProgressTab = () => {
-                let allExercises = [];
-                Object.keys(workoutSplit).forEach(day => {
-                    if (day !== 'Rest') allExercises = [...allExercises, ...workoutSplit[day]];
-                });
-                allExercises = [...new Set(allExercises)].sort(); 
-
-                if (selectedHistoryExercise) {
-                    return (
-                        <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
-                            <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
-                                <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md p-4 items-center gap-2">
-                                    <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
-                                    <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
-                                </div>
-                                <div className="flex-1 overflow-y-auto space-y-6 p-4">
-                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
-                                        {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
-                                    </div>
-                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
-                                        <div className="space-y-2">
-                                            <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
-                                            {historyData.length > 0 ? historyData.map((row, idx) => (
-                                                <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
-                                                    <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
-                                                </div>
-                                            )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                     <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
-                         <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
-                            <div className="text-center p-6 border-b border-slate-800/50 bg-slate-900/50"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-4 custom-scrollbar">
-                                {allExercises.map(ex => (
-                                    <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-            
-            const getTabDate = (dayName) => {
-                if (programType === 'ppl') return null;
-                const days = Object.keys(workoutSplit);
-                const idx = days.indexOf(dayName);
-                if (idx !== -1) {
-                    const date = new Date(currentWeekStart);
-                    date.setDate(date.getDate() + idx);
-                    return formatDate(date);
-                }
-                return null;
-            };
-            if (!user) {
-                return (
-                    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-sans">
-                        <div className="mb-8 p-6 bg-emerald-500/10 rounded-3xl border border-emerald-500/20 animate-pulse">
-                            <Icons.Activity className="w-16 h-16 text-emerald-400" />
-                        </div>
-                        <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">FocusFit Pro</h1>
-                        <p className="text-slate-400 mb-10 max-w-xs leading-relaxed">Track your workouts, visualize progress, and sync with your friends.</p>
-                        
-                        <button 
-                            onClick={() => window.loginWithGoogle()}
-                            className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-slate-200 text-slate-900 font-bold rounded-2xl transition-all active:scale-95 shadow-xl"
-                        >
-                            <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                            Sign in with Google
-                        </button>
-                    </div>
-                );
-            }
-
 return (
                 <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden bg-slate-950">
                     <nav className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 h-12 flex items-center justify-between shadow-lg flex-none">
@@ -973,11 +565,7 @@ return (
                                  <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
                              <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
-                             {user && (
-                                <button onClick={() => window.logoutUser()} className="p-1.5 text-red-400 hover:bg-slate-800 rounded-lg" title="Logout">
-                                    <Icons.Unlock className="w-4 h-4" />
-                                </button>
-                             )}
+                             
                          </div>
                     </nav>
 
