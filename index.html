@@ -23,60 +23,61 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // NEW: Import Auth functions
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // ============================================================
-        // 🔴 YOUR APP CONFIGURATION 🔴
-        // Change the iconURL to whatever image you want for your phone icon!
-        // ============================================================
-        const APP_CONFIG = {
-            name: "Workout",
-            shortName: "Workout",
-            iconUrl: "data:image/jpeg;base64,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", 
-            themeColor: "#0f172a",
-            backgroundColor: "#020617"
-        };
-
-        const manifest = {
-            name: APP_CONFIG.name,
-            short_name: APP_CONFIG.shortName,
-            start_url: ".",
-            display: "standalone",
-            orientation: "landscape",
-            background_color: APP_CONFIG.backgroundColor,
-            theme_color: APP_CONFIG.themeColor,
-            icons: [{ src: APP_CONFIG.iconUrl, sizes: "512x512", type: "image/png" }]
-        };
-
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        
-        document.getElementById('manifest-link').setAttribute('href', manifestURL);
-        document.getElementById('icon-link').setAttribute('href', APP_CONFIG.iconUrl);
-        document.getElementById('apple-icon-link').setAttribute('href', APP_CONFIG.iconUrl);
-        document.title = APP_CONFIG.name;
-
-        // ============================================================
-        // 🔴 YOUR FIREBASE KEYS 🔴
+        // 🔴 PASTE YOUR CONFIG HERE 🔴
         // ============================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8",
+            apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8", // <--- Make sure this matches your key
             authDomain: "gym-tracker-b14ce.firebaseapp.com",
             projectId: "gym-tracker-b14ce",
             storageBucket: "gym-tracker-b14ce.firebasestorage.app",
             messagingSenderId: "122178207860",
             appId: "1:122178207860:web:05a1454788223ac39d9121"
         };
+        // ============================================================
 
         if (!firebaseConfig.projectId || firebaseConfig.projectId === "") {
-            console.warn("Firebase is not configured. Cloud saving will be disabled.");
+            console.warn("Firebase is not configured.");
             window.firebaseConfigured = false;
         } else {
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
+            const auth = getAuth(app); // Initialize Auth
+            const provider = new GoogleAuthProvider(); // Google Login Provider
+
             window.firebaseConfigured = true;
+            window.auth = auth; // Make auth accessible to React
+
+            // --- EXPOSE AUTH FUNCTIONS TO REACT ---
+            window.loginWithGoogle = async () => {
+                try {
+                    await signInWithPopup(auth, provider);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            };
+
+            window.logoutUser = async () => {
+                try {
+                    await signOut(auth);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            };
+
+            // --- DATABASE FUNCTIONS (Now with User Filtering!) ---
 
             window.saveToFirebase = async (dataPayload) => {
+                if (!auth.currentUser) return { success: false, error: "Not logged in" };
+                
+                // 🔴 AUTOMATICALLY TAG DATA WITH USER ID
+                dataPayload.uid = auth.currentUser.uid; 
+
                 try {
                     const docRef = await addDoc(collection(db, "workouts"), dataPayload);
                     return { success: true, id: docRef.id };
@@ -86,6 +87,7 @@
             };
 
             window.updateInFirebase = async (docId, dataPayload) => {
+                if (!auth.currentUser) return { success: false, error: "Not logged in" };
                 try {
                     const docRef = doc(db, "workouts", docId);
                     await updateDoc(docRef, dataPayload);
@@ -96,8 +98,14 @@
             };
 
             window.getFromFirebase = async (exerciseName) => {
+                if (!auth.currentUser) return [];
                 try {
-                    const q = query(collection(db, "workouts"), where("exercise", "==", exerciseName));
+                    // 🔴 ONLY GET DATA THAT MATCHES MY ID
+                    const q = query(
+                        collection(db, "workouts"), 
+                        where("exercise", "==", exerciseName),
+                        where("uid", "==", auth.currentUser.uid) 
+                    );
                     const querySnapshot = await getDocs(q);
                     const history = [];
                     querySnapshot.forEach((doc) => {
@@ -108,21 +116,26 @@
                             Exercise: data.exercise,
                             Kg: data.kg,
                             Reps: data.reps,
-                            Comment: data.comment
+                            Comment: data.comment,
+                            Session: data.session
                         });
                     });
                     return history.sort((a, b) => new Date(a.Date) - new Date(b.Date));
                 } catch (e) {
+                    console.error(e);
                     return [];
                 }
             };
 
             window.getLogsByDateRange = async (startDateStr, endDateStr) => {
+                if (!auth.currentUser) return [];
                 try {
+                    // 🔴 ONLY GET DATA THAT MATCHES MY ID
                     const q = query(
                         collection(db, "workouts"), 
                         where("date", ">=", startDateStr),
-                        where("date", "<=", endDateStr)
+                        where("date", "<=", endDateStr),
+                        where("uid", "==", auth.currentUser.uid)
                     );
                     const querySnapshot = await getDocs(q);
                     const logs = [];
@@ -133,6 +146,7 @@
                     });
                     return logs.sort((a, b) => new Date(a.date) - new Date(b.date));
                 } catch (e) {
+                    console.error(e);
                     return [];
                 }
             };
@@ -409,6 +423,7 @@
         };
 
         const App = () => {
+            const [user, setUser] = useState(null);
             const [programType, setProgramType] = useState(() => localStorage.getItem('programType_v1') || 'ppl');
             const [workoutSplit, setWorkoutSplit] = useState(() => {
                 const saved = localStorage.getItem('workoutSplit_v1');
@@ -418,6 +433,22 @@
             useEffect(() => {
                 if (!workoutSplit) {
                     setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (window.auth) {
+                    // Listen for login/logout events
+                    window.auth.onAuthStateChanged((u) => {
+                        setUser(u);
+                        if (u) {
+                            // If we just logged in, trigger a data sync
+                            fetchWeeklyData(currentWeekStart);
+                        } else {
+                            // If we logged out, clear the data
+                            setWorkoutData(generateInitialData(workoutSplit, programType));
+                        }
+                    });
                 }
             }, []);
 
@@ -868,6 +899,25 @@
                 }
                 return null;
             };
+            if (!user) {
+                return (
+                    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-sans">
+                        <div className="mb-8 p-6 bg-emerald-500/10 rounded-3xl border border-emerald-500/20 animate-pulse">
+                            <Icons.Activity className="w-16 h-16 text-emerald-400" />
+                        </div>
+                        <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">FocusFit Pro</h1>
+                        <p className="text-slate-400 mb-10 max-w-xs leading-relaxed">Track your workouts, visualize progress, and sync with your friends.</p>
+                        
+                        <button 
+                            onClick={() => window.loginWithGoogle()}
+                            className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-slate-200 text-slate-900 font-bold rounded-2xl transition-all active:scale-95 shadow-xl"
+                        >
+                            <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                            Sign in with Google
+                        </button>
+                    </div>
+                );
+            }
 
 return (
                 <div className="min-h-screen font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden bg-slate-950">
@@ -881,6 +931,11 @@ return (
                                  <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
                              <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
+                             {user && (
+                                <button onClick={() => window.logoutUser()} className="p-1.5 text-red-400 hover:bg-slate-800 rounded-lg" title="Logout">
+                                    <Icons.Unlock className="w-4 h-4" />
+                                </button>
+                             )}
                          </div>
                     </nav>
 
