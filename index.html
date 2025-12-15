@@ -206,7 +206,8 @@
             Unlock: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>,
             RotateCcw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>,
             Dumbbell: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>,
-            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Copy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -735,6 +736,74 @@
                 } else {
                     showToast(`Successfully saved ${processedCount} sets!`, "success");
                     setWorkoutData(newWorkoutData);
+                }
+            };
+
+            const handleCopyPrevious = async (sessionName) => {
+                if (!window.firebaseConfigured) {
+                    showToast("Cloud sync disabled. Cannot fetch history.", "error");
+                    return;
+                }
+                
+                showToast(`Fetching last ${sessionName} data...`, "success");
+                
+                const exercises = workoutSplit[activeDay] || [];
+                let updateCount = 0;
+                // Create a deep copy of current state
+                const newWorkoutData = JSON.parse(JSON.stringify(workoutData)); 
+                
+                // Helper to find specific session in history
+                const findLastSessionLog = (history) => {
+                    // History comes sorted by Date ascending (oldest -> newest)
+                    // We reverse to find newest first
+                    const reversed = [...history].reverse();
+                    
+                    // Find the most recent date that has this session
+                    const lastEntry = reversed.find(h => {
+                         // Check if session matches (or if it's undefined/null, assume Session 1 for legacy data)
+                         const sess = h.Session || "Session 1"; 
+                         return sess === sessionName;
+                    });
+                    
+                    return lastEntry ? lastEntry.Date : null;
+                };
+
+                for (const exercise of exercises) {
+                    // Get full history for this exercise from Firebase
+                    const history = await window.getFromFirebase(exercise);
+                    
+                    if (history && history.length > 0) {
+                        const lastDate = findLastSessionLog(history);
+                        
+                        if (lastDate) {
+                            // Filter all sets performed on that specific date and session
+                            const lastSets = history.filter(h => h.Date === lastDate && (h.Session === sessionName || (!h.Session && sessionName === "Session 1")));
+                            
+                            if (lastSets.length > 0) {
+                                // Ensure structure exists
+                                if (!newWorkoutData[activeDay]) newWorkoutData[activeDay] = {};
+                                if (!newWorkoutData[activeDay][exercise]) newWorkoutData[activeDay][exercise] = {};
+                                
+                                const targetSession = newWorkoutData[activeDay][exercise][sessionName];
+                                
+                                // Map history rows to the 3 input sets
+                                lastSets.forEach((setLog, idx) => {
+                                    if (idx < 3) {
+                                         targetSession.sets[idx].weight = setLog.Kg;
+                                         targetSession.sets[idx].reps = setLog.Reps;
+                                    }
+                                });
+                                updateCount++;
+                            }
+                        }
+                    }
+                }
+                
+                if (updateCount > 0) {
+                    setWorkoutData(newWorkoutData);
+                    showToast(`Filled ${updateCount} exercises from history!`, "success");
+                } else {
+                    showToast("No previous history found for this session.", "error");
                 }
             };
 
