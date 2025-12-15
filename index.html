@@ -25,31 +25,58 @@
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // ============================================================
-        // 🔴 PASTE YOUR CONFIG HERE 🔴
+        // 🔴 YOUR APP CONFIGURATION 🔴
+        // Change the iconURL to whatever image you want for your phone icon!
+        // ============================================================
+        const APP_CONFIG = {
+            name: "Workout",
+            shortName: "Workout",
+            iconUrl: "data:image/jpeg;base64,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", 
+            themeColor: "#0f172a",
+            backgroundColor: "#020617"
+        };
+
+        const manifest = {
+            name: APP_CONFIG.name,
+            short_name: APP_CONFIG.shortName,
+            start_url: ".",
+            display: "standalone",
+            orientation: "landscape",
+            background_color: APP_CONFIG.backgroundColor,
+            theme_color: APP_CONFIG.themeColor,
+            icons: [{ src: APP_CONFIG.iconUrl, sizes: "512x512", type: "image/png" }]
+        };
+
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        
+        document.getElementById('manifest-link').setAttribute('href', manifestURL);
+        document.getElementById('icon-link').setAttribute('href', APP_CONFIG.iconUrl);
+        document.getElementById('apple-icon-link').setAttribute('href', APP_CONFIG.iconUrl);
+        document.title = APP_CONFIG.name;
+
+        // ============================================================
+        // 🔴 YOUR FIREBASE KEYS 🔴
         // ============================================================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", 
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCp2FLLKB-qhCN5cOoUvHT2nPgo_hXGWh8",
+            authDomain: "gym-tracker-b14ce.firebaseapp.com",
+            projectId: "gym-tracker-b14ce",
+            storageBucket: "gym-tracker-b14ce.firebasestorage.app",
+            messagingSenderId: "122178207860",
+            appId: "1:122178207860:web:05a1454788223ac39d9121"
         };
-        // ============================================================
 
-        if (!firebaseConfig.projectId || firebaseConfig.projectId === "" || firebaseConfig.projectId.includes("YOUR_")) {
-            console.warn("Firebase is not configured.");
+        if (!firebaseConfig.projectId || firebaseConfig.projectId === "") {
+            console.warn("Firebase is not configured. Cloud saving will be disabled.");
             window.firebaseConfigured = false;
         } else {
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
-            
             window.firebaseConfigured = true;
 
-            // --- DATABASE FUNCTIONS (Simple Version - No User ID Filtering) ---
-
             window.saveToFirebase = async (dataPayload) => {
-                // No login check needed
                 try {
                     const docRef = await addDoc(collection(db, "workouts"), dataPayload);
                     return { success: true, id: docRef.id };
@@ -70,11 +97,7 @@
 
             window.getFromFirebase = async (exerciseName) => {
                 try {
-                    // Simple query: Just get logs for this exercise
-                    const q = query(
-                        collection(db, "workouts"), 
-                        where("exercise", "==", exerciseName)
-                    );
+                    const q = query(collection(db, "workouts"), where("exercise", "==", exerciseName));
                     const querySnapshot = await getDocs(q);
                     const history = [];
                     querySnapshot.forEach((doc) => {
@@ -85,20 +108,17 @@
                             Exercise: data.exercise,
                             Kg: data.kg,
                             Reps: data.reps,
-                            Comment: data.comment,
-                            Session: data.session
+                            Comment: data.comment
                         });
                     });
                     return history.sort((a, b) => new Date(a.Date) - new Date(b.Date));
                 } catch (e) {
-                    console.error(e);
                     return [];
                 }
             };
 
             window.getLogsByDateRange = async (startDateStr, endDateStr) => {
                 try {
-                    // Simple query: Just get logs by date
                     const q = query(
                         collection(db, "workouts"), 
                         where("date", ">=", startDateStr),
@@ -113,7 +133,6 @@
                     });
                     return logs.sort((a, b) => new Date(a.date) - new Date(b.date));
                 } catch (e) {
-                    console.error(e);
                     return [];
                 }
             };
@@ -187,8 +206,7 @@
             Unlock: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>,
             RotateCcw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>,
             Dumbbell: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>,
-            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-            Copy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -270,12 +288,7 @@
         };
 
         const formatDateISO = (date) => {
-            // FIX: Use local time instead of UTC to avoid "vanishing data" at night
-            const d = new Date(date);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return date.toISOString().split('T')[0];
         };
 
         // --- COMPONENTS ---
@@ -395,12 +408,26 @@
         };
 
         const App = () => {
-            // REMOVED: const [user, setUser] ...
+            
             const [programType, setProgramType] = useState(() => localStorage.getItem('programType_v1') || 'ppl');
+            // --- TOAST NOTIFICATION STATE ---
+            const [toast, setToast] = useState(null);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                // Auto-hide after 3 seconds
+                setTimeout(() => setToast(null), 3000);
+            };
             const [workoutSplit, setWorkoutSplit] = useState(() => {
                 const saved = localStorage.getItem('workoutSplit_v1');
                 return saved ? JSON.parse(saved) : SPLIT_PPL;
             });
+
+            useEffect(() => {
+                if (!workoutSplit) {
+                    setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
+                }
+            }, []);
 
             const [activeDay, setActiveDay] = useState(() => {
                 const keys = Object.keys(workoutSplit).filter(k => k !== 'Rest');
@@ -409,59 +436,48 @@
 
             const [sessions, setSessions] = useState(() => generateSessionLabels(programType));
 
-            // --- STATE VARIABLES ---
-            const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [showSettingsModal, setShowSettingsModal] = useState(false);
-            const [isEditingExercises, setIsEditingExercises] = useState(false); 
-            const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
-            const [historyData, setHistoryData] = useState([]);
-            const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-            const [selectedCell, setSelectedCell] = useState(null);
-            const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
-            const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
-
-            // --- DATA LOADING (Reverted to Simple LocalStorage) ---
-            const [workoutData, setWorkoutData] = useState(() => { 
-                const startStr = formatDateISO(getMonday(new Date()));
-                // OLD KEY FORMAT: No User ID
-                const localKey = `workoutData_${startStr}`; 
-                const saved = localStorage.getItem(localKey);
-                
-                if (saved) return JSON.parse(saved);
-                return generateInitialData(workoutSplit, programType);
-            });
-
-            // --- EFFECTS ---
-
-            useEffect(() => {
-                if (!workoutSplit) setWorkoutSplit(programType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE);
-            }, []);
-
             useEffect(() => {
                 setSessions(generateSessionLabels(programType));
             }, [programType]);
 
-            // AUTO-SYNC (Reverted: No User check)
+            const [showResetConfirm, setShowResetConfirm] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [isEditingExercises, setIsEditingExercises] = useState(false); 
+            
+            const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
+            const [historyData, setHistoryData] = useState([]);
+            const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+            
+            const [workoutData, setWorkoutData] = useState(() => { 
+                const saved = localStorage.getItem('workoutData_v9'); 
+                if (saved) return JSON.parse(saved);
+                return generateInitialData(workoutSplit, programType);
+            });
+            const [selectedCell, setSelectedCell] = useState(null);
+            const [showFirebaseAlert, setShowFirebaseAlert] = useState(false);
+            
+            const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
+            // --- NEW: AUTO-SYNC ON LOAD ---
             useEffect(() => {
                 const initialSync = async () => {
+                    // 1. Wait briefly for Firebase to initialize (fixes race condition)
                     let attempts = 0;
                     while (!window.firebaseConfigured && attempts < 10) {
                         await new Promise(r => setTimeout(r, 200));
                         attempts++;
                     }
+                    
+                    // 2. If connected, fetch the latest data for this week
                     if (window.firebaseConfigured) {
+                        console.log("Firebase connected. Auto-syncing...");
                         await fetchWeeklyData(currentWeekStart);
                     }
                 };
                 initialSync();
-            }, []);
+            }, []); // Empty brackets [] mean this runs only once when App opens
+            // -----------------------------
 
-            // SAVE TO LOCAL STORAGE (Reverted: Simple Key)
-            useEffect(() => { 
-                const key = `workoutData_${formatDateISO(currentWeekStart)}`;
-                localStorage.setItem(key, JSON.stringify(workoutData)); 
-            }, [workoutData, currentWeekStart]);
-
+            useEffect(() => { localStorage.setItem('workoutData_v9', JSON.stringify(workoutData)); }, [workoutData]);
             useEffect(() => { localStorage.setItem('workoutSplit_v1', JSON.stringify(workoutSplit)); }, [workoutSplit]);
             useEffect(() => { localStorage.setItem('programType_v1', programType); }, [programType]);
 
@@ -479,6 +495,7 @@
                             const data = await window.getFromFirebase(selectedHistoryExercise);
                             setHistoryData(data);
                         } else {
+                            console.error("Firebase Not Initialized");
                             setHistoryData([]);
                         }
                         setIsLoadingHistory(false);
@@ -500,57 +517,288 @@
                 fetchWeeklyData(newStart);
             };
 
-            // FETCH DATA (Reverted: No 'currentUser' argument)
             const fetchWeeklyData = async (startDate) => {
+                if (!window.getLogsByDateRange || !window.firebaseConfigured) return;
+
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6);
                 const startStr = formatDateISO(startDate);
-                let newData = generateInitialData(workoutSplit, programType); 
+                const endStr = formatDateISO(endDate);
 
-                // 1. Load LOCAL data (Simple Key)
-                const localKey = `workoutData_${startStr}`;
-                const localSaved = localStorage.getItem(localKey);
-                
-                if (localSaved) {
-                    try { newData = JSON.parse(localSaved); } 
-                    catch(e) { console.error(e); }
-                }
+                const logs = await window.getLogsByDateRange(startStr, endStr);
+                const newData = generateInitialData(workoutSplit, programType); 
 
-                // 2. Load CLOUD data (No Auth Check)
-                if (window.getLogsByDateRange && window.firebaseConfigured) {
-                    const endDate = new Date(startDate);
-                    endDate.setDate(endDate.getDate() + 6);
-                    const endStr = formatDateISO(endDate);
+                if (logs && logs.length > 0) {
+                    const groupedLogs = {};
+                    logs.forEach(log => {
+                        const key = `${log.category}|${log.exercise}|${log.session}`;
+                        if (!groupedLogs[key]) groupedLogs[key] = [];
+                        groupedLogs[key].push(log);
+                    });
 
-                    const logs = await window.getLogsByDateRange(startStr, endStr);
-
-                    if (logs && logs.length > 0) {
-                        const groupedLogs = {};
-                        logs.forEach(log => {
-                            const key = `${log.category}|${log.exercise}|${log.session}`;
-                            if (!groupedLogs[key]) groupedLogs[key] = [];
-                            groupedLogs[key].push(log);
-                        });
-
-                        Object.keys(groupedLogs).forEach(key => {
-                            const [category, exercise, session] = key.split('|');
-                            const sets = groupedLogs[key];
+                    Object.keys(groupedLogs).forEach(key => {
+                        const [category, exercise, session] = key.split('|');
+                        const sets = groupedLogs[key];
+                        
+                        if (newData[category] && newData[category][exercise] && newData[category][exercise][session]) {
+                            const currentSession = newData[category][exercise][session];
+                            const latestSets = sets.slice(-3);
                             
-                            if (newData[category] && newData[category][exercise] && newData[category][exercise][session]) {
-                                const currentSession = newData[category][exercise][session];
-                                const latestSets = sets.slice(-3);
-                                latestSets.forEach((setLog, index) => {
-                                    if (index < 3) {
-                                        currentSession.sets[index].reps = setLog.reps;
-                                        currentSession.sets[index].weight = setLog.kg;
-                                        currentSession.sets[index].docId = setLog.id; 
-                                    }
-                                });
-                                if (sets[sets.length - 1].comment) currentSession.comment = sets[sets.length - 1].comment;
-                                currentSession.completed = true;
-                            }
-                        });
-                    }
+                            latestSets.forEach((setLog, index) => {
+                                if (index < 3) {
+                                    currentSession.sets[index].reps = setLog.reps;
+                                    currentSession.sets[index].weight = setLog.kg;
+                                    currentSession.sets[index].docId = setLog.id; 
+                                }
+                            });
+                            if (sets[sets.length - 1].comment) currentSession.comment = sets[sets.length - 1].comment;
+                            currentSession.completed = true;
+                        }
+                    });
                 }
                 setWorkoutData(newData);
+            };
+
+            const handleSaveSplit = (newSplit, newType) => {
+                setProgramType(newType);
+                if (newSplit) {
+                    const newWorkoutData = generateInitialData(newSplit, newType);
+                    setWorkoutSplit(newSplit);
+                    setWorkoutData(newWorkoutData);
+                    
+                    const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
+                    if (keys.length > 0) setActiveDay(keys[0]);
+                }
+                
+                setShowSettingsModal(false);
+            };
+
+            const handleExerciseRename = (day, idx, newName) => {
+                const oldName = workoutSplit[day][idx];
+                if (oldName === newName) return;
+
+                const newSplit = { ...workoutSplit };
+                newSplit[day] = [...newSplit[day]];
+                newSplit[day][idx] = newName;
+                setWorkoutSplit(newSplit);
+
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (newData[day] && newData[day][oldName]) {
+                        newData[day][newName] = newData[day][oldName];
+                        delete newData[day][oldName];
+                    } else {
+                        if (!newData[day]) newData[day] = {};
+                        newData[day][newName] = {};
+                        sessions.forEach(label => {
+                            newData[day][newName][label] = { 
+                                sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
+                                completed: false,
+                                comment: ""
+                            };
+                        });
+                    }
+                    return newData;
+                });
+            };
+
+            const handleExerciseAdd = (day) => {
+                const newSplit = { ...workoutSplit };
+                const newName = "New Exercise " + (newSplit[day].length + 1);
+                newSplit[day] = [...newSplit[day], newName];
+                setWorkoutSplit(newSplit);
+                
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (!newData[day]) newData[day] = {};
+                    newData[day][newName] = {};
+                    sessions.forEach(label => {
+                        newData[day][newName][label] = { 
+                            sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
+                            completed: false,
+                            comment: ""
+                        };
+                    });
+                    return newData;
+                });
+            };
+
+            const handleExerciseDelete = (day, idx) => {
+                if(!confirm("Remove this exercise?")) return;
+                const exerciseName = workoutSplit[day][idx];
+                
+                const newSplit = { ...workoutSplit };
+                newSplit[day] = newSplit[day].filter((_, i) => i !== idx);
+                setWorkoutSplit(newSplit);
+                
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    if (newData[day] && newData[day][exerciseName]) {
+                        delete newData[day][exerciseName];
+                    }
+                    return newData;
+                });
+            };
+
+            const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    
+                    if (!newData[dayKey]) newData[dayKey] = {};
+                    if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
+                    
+                    const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
+                    
+                    sessionData.sets[setIndex][field] = value;
+                    sessionData.completed = sessionData.sets.some(s => s.reps !== '' || s.weight !== '');
+                    
+                    newData[dayKey][exercise][session] = sessionData;
+                    return newData;
+                });
+            };
+
+            const handleCommentUpdate = (dayKey, exercise, session, value) => {
+                setWorkoutData(prev => {
+                    const newData = JSON.parse(JSON.stringify(prev));
+                    
+                    if (!newData[dayKey]) newData[dayKey] = {};
+                    if (!newData[dayKey][exercise]) { newData[dayKey][exercise] = {}; }
+                    const sessionData = newData[dayKey][exercise][session] || { sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }], completed: false, comment: "" };
+                    
+                    sessionData.comment = value;
+                    newData[dayKey][exercise][session] = sessionData;
+                    return newData;
+                });
+            };
+
+            const getCompletedSets = (dayKey, exercise, session) => {
+                const sets = workoutData[dayKey]?.[exercise]?.[session]?.sets || [];
+                return sets.filter(set => set.weight !== '' || set.reps !== '');
+            };
+
+            const currentExercises = workoutSplit[activeDay] || [];
+            
+            const resetAllData = () => { setWorkoutData(generateInitialData(workoutSplit, programType)); setShowResetConfirm(false); };
+
+            const handleSaveSession = async (sessionName) => {
+                if (!window.firebaseConfigured) {
+                    alert("Firebase keys are missing! Data will not be saved to the cloud.");
+                    return;
+                }
+
+                const sessionDate = new Date(currentWeekStart);
+                if (sessionName === "Session 2") {
+                    sessionDate.setDate(sessionDate.getDate() + 3); 
+                }
+                const dateStr = formatDateISO(sessionDate);
+
+                const exercises = workoutSplit[activeDay] || [];
+                let processedCount = 0;
+                const newWorkoutData = JSON.parse(JSON.stringify(workoutData));
+
+                for (const exercise of exercises) {
+                    const sessionData = newWorkoutData[activeDay]?.[exercise]?.[sessionName];
+                    if (sessionData && sessionData.sets) {
+                        for (let i = 0; i < sessionData.sets.length; i++) {
+                            const s = sessionData.sets[i];
+                            if (!s.weight || !s.reps) continue;
+
+                            const payload = { 
+                                date: dateStr, 
+                                exercise: exercise, 
+                                reps: parseInt(s.reps), 
+                                kg: parseFloat(s.weight), 
+                                category: activeDay, 
+                                session: sessionName, 
+                                comment: sessionData.comment || '' 
+                            };
+
+                            if (s.docId) {
+                                if (window.updateInFirebase) {
+                                    await window.updateInFirebase(s.docId, payload);
+                                    processedCount++;
+                                }
+                            } else {
+                                if (window.saveToFirebase) {
+                                    const result = await window.saveToFirebase(payload);
+                                    if (result.success && result.id) {
+                                        s.docId = result.id; 
+                                        processedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (processedCount === 0) { 
+                    showToast("No data found to save!", "error");
+                } else {
+                    showToast(`Successfully saved ${processedCount} sets!`, "success");
+                    setWorkoutData(newWorkoutData);
+                }
+            };
+
+            const renderProgressTab = () => {
+                let allExercises = [];
+                Object.keys(workoutSplit).forEach(day => {
+                    if (day !== 'Rest') allExercises = [...allExercises, ...workoutSplit[day]];
+                });
+                allExercises = [...new Set(allExercises)].sort(); 
+
+                if (selectedHistoryExercise) {
+                    return (
+                        <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
+                            <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                                <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md p-4 items-center gap-2">
+                                    <button onClick={() => setSelectedHistoryExercise(null)} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all">← Back</button>
+                                    <h2 className="text-xl font-bold text-white line-clamp-1">{selectedHistoryExercise}</h2>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-6 p-4">
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.TrendingUp className="w-4 h-4 text-blue-500"/> Strength Progression</h3>
+                                        {isLoadingHistory ? <div className="text-center py-8 text-slate-500 animate-pulse">Loading data...</div> : <ProgressChart historyData={historyData} />}
+                                    </div>
+                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2"><Icons.List className="w-4 h-4 text-emerald-500"/> History Log</h3>
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-4 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2"><span>Date</span><span className="text-center">Set</span><span className="text-center">Kg</span><span className="text-center">Reps</span></div>
+                                            {historyData.length > 0 ? historyData.map((row, idx) => (
+                                                <div key={idx} className="grid grid-cols-4 text-sm text-slate-300 p-2 bg-slate-800/30 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
+                                                    <span className="text-slate-400">{row.Date}</span><span className="text-center text-slate-500">{idx + 1}</span><span className="text-center font-bold text-emerald-400">{row.Kg}</span><span className="text-center font-mono">{row.Reps}</span>
+                                                </div>
+                                            )) : <div className="text-center text-slate-500 py-4 text-sm">No recorded sets yet.</div>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                return (
+                     <div className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col items-center">
+                         <div className="w-full max-w-5xl h-full flex flex-col bg-slate-900/40 backdrop-blur-md rounded-3xl border border-slate-800/60 shadow-2xl overflow-hidden relative animate-fade-in">
+                            <div className="text-center p-6 border-b border-slate-800/50 bg-slate-900/50"><h2 className="text-2xl font-bold text-white mb-1">Exercise History</h2><p className="text-slate-400 text-sm">Select an exercise to view your progress graph.</p></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto p-4 custom-scrollbar">
+                                {allExercises.map(ex => (
+                                    <button key={ex} onClick={() => setSelectedHistoryExercise(ex)} className="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all hover:scale-[1.01] active:scale-[0.99] group"><span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{ex}</span></button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+            
+            const getTabDate = (dayName) => {
+                if (programType === 'ppl') return null;
+                const days = Object.keys(workoutSplit);
+                const idx = days.indexOf(dayName);
+                if (idx !== -1) {
+                    const date = new Date(currentWeekStart);
+                    date.setDate(date.getDate() + idx);
+                    return formatDate(date);
+                }
+                return null;
             };
 
 return (
@@ -565,7 +813,6 @@ return (
                                  <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
                              <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
-                             
                          </div>
                     </nav>
 
@@ -608,16 +855,10 @@ return (
                                             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{currentExercises.length} Exercises</span>
                                         </div>
                                         {/* Desktop Columns Header (Hidden on Mobile) */}
-                                        
                                         <div className="hidden md:flex flex-1 overflow-x-auto no-scrollbar">
                                             {sessions.map((session) => (
-                                                <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center gap-1">
+                                                <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center">
                                                     <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'S')}</span>
-                                                    {!isEditingExercises && (
-                                                        <button onClick={() => handleCopyPrevious(session)} className="text-[9px] flex items-center gap-1 text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 rounded transition-colors" title="Fill from last workout">
-                                                            <Icons.Copy className="w-2.5 h-2.5" /> Copy Last
-                                                        </button>
-                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -661,18 +902,7 @@ return (
                                                                     onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }}
                                                                     className="p-3 active:bg-slate-800 transition-colors cursor-pointer flex flex-col gap-2 min-h-[80px]"
                                                                 >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{session}</span>
-                                                                        {!isCompleted && !isEditingExercises && (
-                                                                            <button 
-                                                                                onClick={(e) => { e.stopPropagation(); handleCopyPrevious(session); }} 
-                                                                                className="text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 p-1 rounded"
-                                                                                title="Fill from last"
-                                                                            >
-                                                                                <Icons.Copy className="w-2.5 h-2.5" />
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
+                                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{session}</span>
                                                                     {isCompleted ? (
                                                                         <div className="flex flex-wrap gap-1">
                                                                             {completedSets.map((set, sIdx) => (
@@ -882,50 +1112,6 @@ return (
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script>
-    <script>
-        // 1. Create a dynamic Icon (Emerald Dumbbell)
-        const iconSvg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="24" height="24" fill="#020617"/>
-            <path d="m6.5 6.5 11 11"/>
-            <path d="m21 21-1-1"/>
-            <path d="m3 3 1 1"/>
-            <path d="m18 22 4-4"/>
-            <path d="m2 6 4-4"/>
-            <path d="m3 10 7-7"/>
-            <path d="m14 21 7-7"/>
-        </svg>`;
-        
-        const iconUrl = "data:image/svg+xml;base64," + btoa(iconSvg);
-
-        // 2. Set the Icons in the HTML Head
-        document.getElementById('icon-link').href = iconUrl;
-        document.getElementById('apple-icon-link').href = iconUrl;
-
-        // 3. Create the Manifest File dynamically
-        const manifest = {
-            "name": "FocusFit Pro",
-            "short_name": "FocusFit",
-            "start_url": ".",
-            "display": "standalone",
-            "orientation": "portrait",
-            "background_color": "#020617",
-            "theme_color": "#0f172a",
-            "icons": [
-                {
-                    "src": iconUrl,
-                    "sizes": "512x512",
-                    "type": "image/svg+xml"
-                }
-            ]
-        };
-
-        // 4. Convert Manifest to a Blob URL and link it
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        document.getElementById('manifest-link').href = manifestURL;
     </script>
 </body>
 </html>
