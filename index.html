@@ -923,10 +923,16 @@ return (
                                             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{currentExercises.length} Exercises</span>
                                         </div>
                                         {/* Desktop Columns Header (Hidden on Mobile) */}
+                                        
                                         <div className="hidden md:flex flex-1 overflow-x-auto no-scrollbar">
                                             {sessions.map((session) => (
-                                                <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center">
+                                                <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center gap-1">
                                                     <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'S')}</span>
+                                                    {!isEditingExercises && (
+                                                        <button onClick={() => handleCopyPrevious(session)} className="text-[9px] flex items-center gap-1 text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 rounded transition-colors" title="Fill from last workout">
+                                                            <Icons.Copy className="w-2.5 h-2.5" /> Copy Last
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -970,7 +976,18 @@ return (
                                                                     onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }}
                                                                     className="p-3 active:bg-slate-800 transition-colors cursor-pointer flex flex-col gap-2 min-h-[80px]"
                                                                 >
-                                                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{session}</span>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{session}</span>
+                                                                        {!isCompleted && !isEditingExercises && (
+                                                                            <button 
+                                                                                onClick={(e) => { e.stopPropagation(); handleCopyPrevious(session); }} 
+                                                                                className="text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 p-1 rounded"
+                                                                                title="Fill from last"
+                                                                            >
+                                                                                <Icons.Copy className="w-2.5 h-2.5" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                     {isCompleted ? (
                                                                         <div className="flex flex-wrap gap-1">
                                                                             {completedSets.map((set, sIdx) => (
