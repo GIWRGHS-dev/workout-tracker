@@ -147,9 +147,18 @@
                         slate: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
                         emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
                     },
+                    colors: {
+                        slate: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
+                    },
                     animation: { 
                         'fade-in': 'fade-in 0.3s ease-out forwards',
                         'slide-up': 'slide-up 0.3s ease-out forwards',
+                    },
+                    animation: { 
+                        'fade-in': 'fade-in 0.3s ease-out forwards',
+                        'slide-up': 'slide-up 0.3s ease-out forwards',
+                        'spin-slow': 'spin 3s linear infinite', // <--- ADD THIS LINE
                     },
                     keyframes: { 
                         'fade-in': { 'from': { opacity: '0', transform: 'scale(0.99)' }, 'to': { opacity: '1', transform: 'scale(1)' } },
@@ -175,6 +184,15 @@
     </style>
 </head>
 <body>
+    <div class="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center text-center p-8 hidden portrait:flex">
+        <div class="mb-6 text-emerald-500 animate-spin-slow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 3l14 9-14 9V3z"/> 
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Please Rotate Device</h2>
+        <p class="text-slate-400">FocusFit Pro is designed for landscape mode.</p>
+    </div>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -486,6 +504,12 @@
                     setShowFirebaseAlert(true);
                 }
             }, []);
+            // --- FIX: RE-SYNC WHEN SWITCHING PROGRAM TABS ---
+            useEffect(() => {
+                if (window.firebaseConfigured) {
+                    fetchWeeklyData(currentWeekStart);
+                }
+            }, [programType]);
 
             useEffect(() => {
                 if (activeDay === 'Progress' && selectedHistoryExercise) {
