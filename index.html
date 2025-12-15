@@ -511,10 +511,12 @@
             }, []); // Empty brackets [] mean this runs only once when App opens
             // -----------------------------
             useEffect(() => { 
-                // Save to a DATE-SPECIFIC key (e.g., workoutData_2023-12-08)
-                const key = `workoutData_${formatDateISO(currentWeekStart)}`;
-                localStorage.setItem(key, JSON.stringify(workoutData)); 
-            }, [workoutData, currentWeekStart]);
+                if (user && user.uid) {
+                    // FIX: Save to a USER-SPECIFIC key so friends don't see each other's data
+                    const key = `workoutData_${user.uid}_${formatDateISO(currentWeekStart)}`;
+                    localStorage.setItem(key, JSON.stringify(workoutData)); 
+                }
+            }, [workoutData, currentWeekStart, user]);
             useEffect(() => { localStorage.setItem('workoutSplit_v1', JSON.stringify(workoutSplit)); }, [workoutSplit]);
             useEffect(() => { localStorage.setItem('programType_v1', programType); }, [programType]);
 
@@ -560,21 +562,23 @@
                 // 1. Start with a BLANK template
                 let newData = generateInitialData(workoutSplit, programType); 
 
-                // 2. Try to load LOCAL data for this specific week (The Fix!)
-                // This ensures offline/unsaved changes are recovered
-                const localKey = `workoutData_${startStr}`;
-                const localSaved = localStorage.getItem(localKey);
-                if (localSaved) {
-                    try { 
-                        newData = JSON.parse(localSaved); 
-                    } catch(e) {
-                        console.error("Error parsing local data", e);
+                // 2. Try to load LOCAL data for THIS SPECIFIC USER
+                if (user && user.uid) {
+                    // FIX: Key now includes the user ID so accounts don't mix
+                    const localKey = `workoutData_${user.uid}_${startStr}`;
+                    const localSaved = localStorage.getItem(localKey);
+                    
+                    if (localSaved) {
+                        try { 
+                            newData = JSON.parse(localSaved); 
+                        } catch(e) {
+                            console.error("Error parsing local data", e);
+                        }
                     }
                 }
 
                 // 3. If connected, OVERLAY cloud data on top
-                // This ensures if you logged data on another device, it merges in
-                if (window.getLogsByDateRange && window.firebaseConfigured) {
+                if (window.getLogsByDateRange && window.firebaseConfigured && user) {
                     const endDate = new Date(startDate);
                     endDate.setDate(endDate.getDate() + 6);
                     const endStr = formatDateISO(endDate);
@@ -595,7 +599,6 @@
                             
                             if (newData[category] && newData[category][exercise] && newData[category][exercise][session]) {
                                 const currentSession = newData[category][exercise][session];
-                                // We take the last 3 logs as the 3 sets
                                 const latestSets = sets.slice(-3);
                                 
                                 latestSets.forEach((setLog, index) => {
