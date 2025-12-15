@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,7 +21,15 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+        
+        const APP_CONFIG = {
+            name: "FocusFit",
+            shortName: "FocusFit",
+            // This is the icon that appears on your home screen:
+            iconUrl: "data:image/jpeg;base64,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", 
+            themeColor: "#0f172a",
+            backgroundColor: "#020617"
+        };
         // ============================================================
         // 🔴 YOUR FIREBASE KEYS 🔴
         // ============================================================
@@ -324,62 +331,139 @@
             );
         };
 
-        const SettingsModal = ({ initialType, onClose, onSave }) => {
+        const EditExercisesModal = ({ currentSplit, initialType, onClose, onSave }) => {
+            // UPDATED: Manage local type state to avoid background flickering
             const [localType, setLocalType] = useState(initialType);
+
+            const [localSplitArr, setLocalSplitArr] = useState(() => {
+                return Object.keys(currentSplit).map(key => ({
+                    key: key,
+                    exercises: currentSplit[key]
+                }));
+            });
+
+            // Update local split array when type changes internally in modal
+            useEffect(() => {
+                if (localType === 'ppl') {
+                    setLocalSplitArr(Object.keys(SPLIT_PPL).map(key => ({ key, exercises: SPLIT_PPL[key] })));
+                } else if (localType === 'simple') {
+                    setLocalSplitArr(Object.keys(SPLIT_SIMPLE).map(key => ({ key, exercises: SPLIT_SIMPLE[key] })));
+                }
+            }, [localType]);
+
+            const handleNameChange = (dayIndex, exIndex, newName) => {
+                const updated = [...localSplitArr];
+                updated[dayIndex].exercises[exIndex] = newName;
+                setLocalSplitArr(updated);
+            };
+
+            const handleTitleChange = (dayIndex, newTitle) => {
+                const updated = [...localSplitArr];
+                updated[dayIndex].key = newTitle;
+                setLocalSplitArr(updated);
+            };
+
+            const handleDeleteExercise = (dayIndex, exIndex) => {
+                const updated = [...localSplitArr];
+                updated[dayIndex].exercises = updated[dayIndex].exercises.filter((_, i) => i !== exIndex);
+                setLocalSplitArr(updated);
+            };
+
+            const handleAddExercise = (dayIndex) => {
+                const updated = [...localSplitArr];
+                updated[dayIndex].exercises.push("New Exercise");
+                setLocalSplitArr(updated);
+            };
 
             const handleReset = () => {
                 if (confirm("Reset current program to defaults?")) {
                     const target = localType === 'ppl' ? SPLIT_PPL : SPLIT_SIMPLE;
-                    onSave(target, localType);
+                    setLocalSplitArr(Object.keys(target).map(key => ({ key, exercises: target[key] })));
                 }
             };
 
             const handleSaveInternal = () => {
-                // If switching types, we load default split for that type
-                // If staying on same type, we just pass null for split (implies keep current)
-                // But simplified logic: Just reload default split for the selected type to be safe?
-                // Or try to keep currentSplit if type matches?
-                // For simplicity: If type changed, load default. If type same, do nothing.
-                
-                let newSplit = null;
-                if (localType === 'ppl') newSplit = SPLIT_PPL;
-                else newSplit = SPLIT_SIMPLE;
-
-                onSave(newSplit, localType);
+                const finalObj = {};
+                localSplitArr.forEach(item => {
+                    finalObj[item.key] = item.exercises;
+                });
+                onSave(finalObj, localType); // Pass back the final type
             };
 
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
-                        <div className="p-4 border-b border-slate-700 bg-slate-900 sticky top-0 rounded-t-2xl z-10 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-white">Program Settings</h2>
-                            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><Icons.X className="w-6 h-6" /></button>
-                        </div>
-                        
-                        <div className="p-6 space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Program Type</label>
-                                <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
-                                    <button 
-                                        onClick={() => setLocalType('ppl')}
-                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                                    >
-                                        PPL
-                                    </button>
-                                    <button 
-                                        onClick={() => setLocalType('simple')}
-                                        className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-                                    >
-                                        Weekly
-                                    </button>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-2">Switching programs will load the default exercises for that split.</p>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="p-4 border-b border-slate-700 bg-slate-900 sticky top-0 rounded-t-2xl z-10 space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-lg font-bold text-white">Settings</h2>
+                                <button onClick={onClose} className="p-2 text-slate-400 hover:text-white"><Icons.X className="w-6 h-6" /></button>
                             </div>
-
-                            <div className="pt-4 border-t border-slate-800">
-                                <button onClick={handleReset} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
-                                    <Icons.Refresh className="w-4 h-4" /> Reset to Default
+                            
+                            <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
+                                <button 
+                                    onClick={() => setLocalType('ppl')}
+                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'ppl' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Push / Pull / Legs
                                 </button>
+                                <button 
+                                    onClick={() => setLocalType('simple')}
+                                    className={`flex-1 py-2 rounded-md transition-colors ${localType === 'simple' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Weekly (Mon-Sun)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                            {localSplitArr.map((dayObj, dayIdx) => {
+                                if (dayObj.key === "Rest") return null;
+                                return (
+                                    <div key={dayIdx}>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            {localType === 'simple' ? (
+                                                <input 
+                                                    type="text" 
+                                                    value={dayObj.key}
+                                                    onChange={(e) => handleTitleChange(dayIdx, e.target.value)}
+                                                    className="bg-transparent text-emerald-400 font-bold text-sm uppercase tracking-wider border-b border-dashed border-emerald-500/50 focus:border-emerald-500 focus:outline-none w-full"
+                                                />
+                                            ) : (
+                                                <h3 className="text-emerald-400 font-bold text-sm uppercase tracking-wider">{dayObj.key}</h3>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="space-y-3 pl-2 border-l border-slate-800">
+                                            {dayObj.exercises.map((ex, exIdx) => (
+                                                <div key={exIdx} className="flex gap-2 items-center group">
+                                                    <span className="text-slate-500 font-mono text-xs w-4">{exIdx + 1}.</span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={ex} 
+                                                        onChange={(e) => handleNameChange(dayIdx, exIdx, e.target.value)}
+                                                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleDeleteExercise(dayIdx, exIdx)}
+                                                        className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                                        title="Delete Exercise"
+                                                    >
+                                                        <Icons.Trash className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button 
+                                                onClick={() => handleAddExercise(dayIdx)}
+                                                className="mt-2 text-xs flex items-center gap-1 text-emerald-500 hover:text-emerald-400 font-medium py-1 px-2 rounded hover:bg-emerald-500/10 transition-colors"
+                                            >
+                                                <Icons.Plus className="w-3 h-3" /> Add Exercise
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div className="pt-4 border-t border-slate-800">
+                                <button onClick={handleReset} className="text-xs text-red-400 hover:text-red-300 underline">Reset to Default Exercises</button>
                             </div>
                         </div>
                         <div className="p-4 border-t border-slate-700 bg-slate-900 rounded-b-2xl">
@@ -422,8 +506,7 @@
             }, [programType]);
 
             const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [showSettingsModal, setShowSettingsModal] = useState(false);
-            const [isEditingExercises, setIsEditingExercises] = useState(false); // NEW STATE
+            const [showEditModal, setShowEditModal] = useState(false);
             
             const [selectedHistoryExercise, setSelectedHistoryExercise] = useState(null);
             const [historyData, setHistoryData] = useState([]);
@@ -533,92 +616,16 @@
             // UPDATED: handleSaveSplit now accepts newType
             const handleSaveSplit = (newSplit, newType) => {
                 setProgramType(newType);
-                if (newSplit) { // Only update split if provided (switching types or reset)
-                    const newWorkoutData = generateInitialData(newSplit, newType);
-                    setWorkoutSplit(newSplit);
-                    setWorkoutData(newWorkoutData);
-                    
-                    // Update active day to first key
-                    const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
-                    if (keys.length > 0) setActiveDay(keys[0]);
-                }
-                
-                setShowSettingsModal(false);
-            };
-
-            // NEW: EXERCISE MANAGEMENT FUNCTIONS
-            const handleExerciseRename = (day, idx, newName) => {
-                const oldName = workoutSplit[day][idx];
-                if (oldName === newName) return;
-
-                // 1. Update Split List
-                const newSplit = { ...workoutSplit };
-                newSplit[day] = [...newSplit[day]];
-                newSplit[day][idx] = newName;
+                const newWorkoutData = generateInitialData(newSplit, newType);
                 setWorkoutSplit(newSplit);
-
-                // 2. Migrate Data (Preserve logs)
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (newData[day] && newData[day][oldName]) {
-                        newData[day][newName] = newData[day][oldName];
-                        delete newData[day][oldName];
-                    } else {
-                        // If no data existed for old name, init new one
-                        if (!newData[day]) newData[day] = {};
-                        newData[day][newName] = {};
-                        sessions.forEach(label => {
-                            newData[day][newName][label] = { 
-                                sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
-                                completed: false,
-                                comment: ""
-                            };
-                        });
-                    }
-                    return newData;
-                });
-            };
-
-            const handleExerciseAdd = (day) => {
-                const newSplit = { ...workoutSplit };
-                const newName = "New Exercise " + (newSplit[day].length + 1);
-                newSplit[day] = [...newSplit[day], newName];
-                setWorkoutSplit(newSplit);
+                setWorkoutData(newWorkoutData);
                 
-                // Init data for new exercise
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (!newData[day]) newData[day] = {};
-                    newData[day][newName] = {};
-                    sessions.forEach(label => {
-                        newData[day][newName][label] = { 
-                            sets: [{ reps: '', weight: '' }, { reps: '', weight: '' }, { reps: '', weight: '' }],
-                            completed: false,
-                            comment: ""
-                        };
-                    });
-                    return newData;
-                });
-            };
-
-            const handleExerciseDelete = (day, idx) => {
-                if(!confirm("Remove this exercise?")) return;
-                const exerciseName = workoutSplit[day][idx];
+                // Update active day to first key
+                const keys = Object.keys(newSplit).filter(k => k !== 'Rest');
+                if (keys.length > 0) setActiveDay(keys[0]);
                 
-                const newSplit = { ...workoutSplit };
-                newSplit[day] = newSplit[day].filter((_, i) => i !== idx);
-                setWorkoutSplit(newSplit);
-                
-                // Cleanup data
-                setWorkoutData(prev => {
-                    const newData = JSON.parse(JSON.stringify(prev));
-                    if (newData[day] && newData[day][exerciseName]) {
-                        delete newData[day][exerciseName];
-                    }
-                    return newData;
-                });
+                setShowEditModal(false);
             };
-
 
             const handleSetUpdate = (dayKey, exercise, session, setIndex, field, value) => {
                 setWorkoutData(prev => {
@@ -812,7 +819,7 @@
                                  <span className="px-2 text-[10px] font-mono font-bold text-emerald-400 select-none whitespace-nowrap min-w-[70px] text-center">{weekRangeString}</span>
                                  <button onClick={() => changeWeek(1)} className="p-1.5 text-slate-400 hover:text-white transition-colors active:scale-90"><Icons.ChevronRight className="w-3.5 h-3.5" /></button>
                              </div>
-                             <button onClick={() => setShowSettingsModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
+                             <button onClick={() => setShowEditModal(true)} className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"><Icons.Settings className="w-4 h-4" /></button>
                          </div>
                     </nav>
 
@@ -845,22 +852,13 @@
                                     {/* TABLE HEADER */}
                                     <div className="flex bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-md">
                                         <div className="flex-none w-40 md:w-64 p-3 border-r border-slate-800 z-20 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
-                                                <button 
-                                                    onClick={() => setIsEditingExercises(!isEditingExercises)} 
-                                                    className={`p-1 rounded hover:bg-slate-700/50 transition-colors ${isEditingExercises ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600'}`}
-                                                    title="Edit Exercises"
-                                                >
-                                                    {isEditingExercises ? <Icons.Check className="w-3 h-3" /> : <Icons.Edit className="w-3 h-3" />}
-                                                </button>
-                                            </div>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exercise</span>
                                             <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest hidden md:inline">{currentExercises.length} Total</span>
                                         </div>
                                         <div className="flex flex-1 overflow-x-auto no-scrollbar">
                                             {sessions.map((session) => (
                                                 <div key={session} className="flex-1 min-w-[100px] py-2 px-1 border-r border-slate-800/50 flex flex-col items-center justify-center text-center">
-                                                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isEditingExercises ? 'text-slate-700' : 'text-slate-400'}`}>{session.replace('Session ', 'S')}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{session.replace('Session ', 'S')}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -869,38 +867,19 @@
                                     {/* TABLE BODY */}
                                     <div className="flex-1 overflow-y-auto custom-scrollbar pb-16">
                                         {currentExercises.map((exercise, idx) => (
-                                            <div key={idx} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
-                                                <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none transition-colors">
-                                                    {isEditingExercises ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <input 
-                                                                type="text" 
-                                                                value={exercise} 
-                                                                onChange={(e) => handleExerciseRename(activeDay, idx, e.target.value)}
-                                                                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 focus:outline-none"
-                                                            />
-                                                            <button 
-                                                                onClick={() => handleExerciseDelete(activeDay, idx)}
-                                                                className="text-slate-600 hover:text-red-400 transition-colors p-1"
-                                                            >
-                                                                <Icons.Trash className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-200 transition-colors">{exercise}</span>
-                                                            <span className="text-[9px] text-slate-600 md:hidden mt-0.5 font-mono truncate">{EXERCISE_NOTES[exercise] ? "Tip available" : ""}</span>
-                                                        </>
-                                                    )}
+                                            <div key={exercise} className={`flex border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/20'}`}>
+                                                <div className="flex-none w-40 md:w-64 py-2 px-3 border-r border-slate-800 sticky left-0 z-10 flex flex-col justify-center bg-slate-950/95 md:bg-transparent md:backdrop-blur-none group-hover:bg-slate-900/95 md:group-hover:bg-transparent transition-colors">
+                                                    <span className="text-xs md:text-sm font-semibold text-slate-300 leading-tight md:truncate whitespace-normal group-hover:text-emerald-200 transition-colors">{exercise}</span>
+                                                    <span className="text-[9px] text-slate-600 md:hidden mt-0.5 font-mono truncate">{EXERCISE_NOTES[exercise] ? "Tip available" : ""}</span>
                                                 </div>
-                                                <div className={`flex flex-1 ${isEditingExercises ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
+                                                <div className="flex flex-1">
                                                     {sessions.map((session) => {
                                                         const completedSets = getCompletedSets(activeDay, exercise, session);
                                                         const isCompleted = completedSets.length > 0;
                                                         const isSelected = selectedCell?.exercise === exercise && selectedCell?.session === session;
                                                         
                                                         return (
-                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-1 border-r border-slate-800/30 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : ''}`} onClick={() => { if(!isEditingExercises) setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
+                                                            <div key={`${exercise}-${session}`} className={`flex-1 min-w-[100px] p-1 border-r border-slate-800/30 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative ${isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/50' : ''}`} onClick={() => { setSelectedCell({ dayKey: activeDay, exercise, session }); }} >
                                                                 {isCompleted ? (
                                                                     <div className="flex flex-col gap-0.5 w-full px-1">
                                                                         {completedSets.map((set, idx) => (
@@ -924,22 +903,11 @@
                                                 </div>
                                             </div>
                                         ))}
-                                        {/* ADD BUTTON IN EDIT MODE */}
-                                        {isEditingExercises && (
-                                            <div className="p-2 flex justify-center">
-                                                <button 
-                                                    onClick={() => handleExerciseAdd(activeDay)}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 transition-all"
-                                                >
-                                                    <Icons.Plus className="w-3 h-3" /> Add Exercise
-                                                </button>
-                                            </div>
-                                        )}
                                     </div>
                                     
                                     {/* FOOTER ACTIONS */}
                                     <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between p-3 z-30 backdrop-blur-md">
-                                         <div className={`flex gap-2 w-full justify-around ${isEditingExercises ? 'opacity-30 pointer-events-none' : ''}`}>
+                                         <div className="flex gap-2 w-full justify-around">
                                             {sessions.map((session) => (
                                                 <button key={session} onClick={() => handleSaveSession(session)} className="flex-1 max-w-[200px] py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
                                                     <Icons.Save className="w-3 h-3" /> Save {session}
@@ -1036,7 +1004,7 @@
                         </div>
                     )}
 
-                    {showSettingsModal && <SettingsModal initialType={programType} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSplit} />}
+                    {showEditModal && <EditExercisesModal currentSplit={workoutSplit} initialType={programType} onClose={() => setShowEditModal(false)} onSave={handleSaveSplit} />}
                     
                     {showFirebaseAlert && (
                         <div className="fixed top-0 left-0 right-0 p-2 bg-red-500/90 text-white text-center font-bold z-[60] backdrop-blur-sm">
